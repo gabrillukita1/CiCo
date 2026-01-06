@@ -29,24 +29,30 @@ class LoginController extends GetxController {
     isLoading.value = false;
 
     if (result != null) {
-      // Ambil data user
-      final userData = await _authService.getUser();
-      if (userData != null) {
-        userName.value = userData['name'] ?? userData['email'] ?? 'User';
+      final user = result['user'];
+      userName.value = user['name'] ?? user['email'] ?? 'User';
 
-        Get.snackbar(
-          'Sukses',
-          'Selamat datang, ${userName.value}!',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
+      Get.snackbar(
+        'Sukses!',
+        'Selamat datang, ${userName.value} 👋',
+        backgroundColor: Colors.green.withOpacity(0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+      );
 
-        Get.offAllNamed('/home');
-      }
+      Get.dialog(
+        AlertDialog(
+          title: const Text('Login Berhasil!'),
+          content: Text('Halo ${userName.value}!'),
+          actions: [
+            TextButton(onPressed: () => Get.back(), child: const Text('OK')),
+          ],
+        ),
+      );
     }
   }
 
-  // Fungsi logout 
+  // Fungsi logout
   Future<void> logout() async {
     isLoading.value = true;
     await _authService.performLogout();
