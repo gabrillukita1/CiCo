@@ -30,24 +30,19 @@ class LoginController extends GetxController {
 
     if (result != null) {
       final user = result['user'];
-      userName.value = user['name'] ?? user['email'] ?? 'User';
+      userName.value = user['name'] ?? 'User';
 
       Get.snackbar(
         'Sukses!',
         'Selamat datang, ${userName.value} 👋',
         backgroundColor: Colors.green.withOpacity(0.9),
         colorText: Colors.white,
-        duration: const Duration(seconds: 4),
       );
 
-      Get.dialog(
-        AlertDialog(
-          title: const Text('Login Berhasil!'),
-          content: Text('Halo ${userName.value}!'),
-          actions: [
-            TextButton(onPressed: () => Get.back(), child: const Text('OK')),
-          ],
-        ),
+      // Pindah ke Home dan kirim data user
+      Get.offAllNamed(
+        '/home',
+        arguments: {'name': user['name'], 'email': user['email']},
       );
     }
   }

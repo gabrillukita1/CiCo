@@ -10,19 +10,23 @@ class AuthService {
   final _storage = GetStorage();
 
   AuthService() {
-    _dio = Dio(BaseOptions(
-      baseUrl: 'https://cico-api.my.id/api',
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      contentType: 'application/json',
-      responseType: ResponseType.json,
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://cico-api.my.id/api',
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        contentType: 'application/json',
+        responseType: ResponseType.json,
+      ),
+    );
 
     // Bypass SSL certificate verification (DEVELOPMENT/EMULATOR)
-    (_dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return null;
-    };
+    (_dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
+        (HttpClient client) {
+          client.badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
+          return null;
+        };
   }
 
   // Simpan token
@@ -53,10 +57,7 @@ class AuthService {
     try {
       final response = await _dio.post(
         '/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: {'email': email, 'password': password},
       );
 
       if (response.statusCode == 200) {
@@ -68,27 +69,24 @@ class AuthService {
           await saveToken(token);
         }
 
-        return {
-          'user': user,
-          'token': token,
-        };
+        return {'user': user, 'token': token};
       }
     } on DioException catch (e) {
       String message = 'Login gagal. Periksa koneksi internet.';
 
-      if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
         message = 'Koneksi timeout. Server lambat atau tidak merespon.';
       } else if (e.response != null) {
         message = e.response?.data['message'] ?? 'Email atau password salah';
       } else if (e.message?.contains('HandshakeException') == true) {
-        message = 'Masalah sertifikat SSL (sudah dibypass untuk debug)';
+        message = 'Error';
       }
 
       Get.snackbar(
         'Login Gagal',
         message,
-        backgroundColor: 
-        Colors.red,
+        backgroundColor: Colors.red,
         colorText: Colors.white,
         duration: const Duration(seconds: 6),
       );
@@ -103,7 +101,7 @@ class AuthService {
     return null;
   }
 
-  // GET USER (/me) - opsional
+  // GET USER
   Future<Map<String, dynamic>?> getUser() async {
     _setAuthHeader();
     try {
@@ -133,5 +131,73 @@ class AuthService {
       await logoutLocal();
     }
     return true;
+  }
+
+  // CHECK-IN
+  Future<Map<String, dynamic>?> checkIn() async {
+    _setAuthHeader();
+    try {
+      final response = await _dio.post('/checkin');
+      return response
+          .data;
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': e.response?.data['message'] ?? 'Check-in gagal',
+      };
+    }
+  }
+
+  // PAYMENT
+  Future<Map<String, dynamic>?> pay() async {
+    _setAuthHeader();
+    try {
+      final response = await _dio.post('/pay');
+      print('PAY API SUCCESS: ${response.data}');
+      return response.data;
+    } on DioException catch (e) {
+      print('PAY API ERROR - Status: ${e.response?.statusCode}');
+      print('PAY API ERROR - Full Response: ${e.response?.data}');
+      print(
+        'PAY API ERROR - Details: ${e.response?.data['error_messages'] ?? e.response?.data['message']}',
+      );
+      return {
+        'success': false,
+        'message':
+            e.response?.data['message'] ??
+            'Payment gagal (kode ${e.response?.statusCode})',
+      };
+    }
+  }
+
+  // GET CHECK-IN SESSION
+  Future<Map<String, dynamic>?> getCheckInSession() async {
+    _setAuthHeader();
+    try {
+      final response = await _dio.get('/checkin-session');
+      return response
+          .data;
+    } on DioException {
+      return null;
+    }
+  }
+
+  // CHECKOUT
+  Future<Map<String, dynamic>?> checkout() async {
+    _setAuthHeader();
+    try {
+      final response = await _dio.post('/checkout');
+      print('CHECKOUT API SUCCESS: ${response.data}');
+      return response.data;
+    } on DioException catch (e) {
+      print('CHECKOUT API ERROR - Status: ${e.response?.statusCode}');
+      print('CHECKOUT API ERROR - Message: ${e.response?.data['message']}');
+      return {
+        'success': false,
+        'message':
+            e.response?.data['message'] ??
+            'Checkout gagal (kode ${e.response?.statusCode})',
+      };
+    }
   }
 }

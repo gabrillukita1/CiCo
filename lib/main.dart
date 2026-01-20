@@ -1,9 +1,11 @@
-import 'package:cico_project/auth/bindings/login_binding.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'auth/views/login_screen.dart';
+import 'package:get_storage/get_storage.dart';
+import 'app/routes/app_pages.dart';
+import 'app/routes/app_routes.dart';
 
-void main() {
+void main() async {
+  await GetStorage.init();
   runApp(const CicoApp());
 }
 
@@ -12,15 +14,15 @@ class CicoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  return GetMaterialApp(
+    return GetMaterialApp(
       title: 'CICO Project',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.amber,
         useMaterial3: true,
       ),
-      home: const LoginScreen(),
-      initialBinding: LoginBinding(),
+      initialRoute: AppRoutes.login,
+      getPages: AppPages.routes,
     );
   }
 }
