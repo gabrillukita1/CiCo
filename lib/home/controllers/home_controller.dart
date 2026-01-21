@@ -27,7 +27,9 @@ class HomeController extends GetxController {
       userName.value = args['name']?.toString() ?? 'Admin';
       userEmail.value = args['email']?.toString() ?? 'admin@cico.com';
     }
-    loadCheckInStatus();
+    loadCheckInStatus().then((_) {
+      _startPollingCheckInSession(); // pastikan polling jalan kalau pending
+    });
   }
 
   @override
@@ -43,15 +45,13 @@ class HomeController extends GetxController {
       _resetToIdle();
       return;
     }
-
-    print('SESSION FULL: $session');
     final checkinData =
         session['data']?['checkin_session'] as Map<String, dynamic>?;
     if (checkinData == null) {
+      print('→ Tidak ada checkin_session di response');
       _resetToIdle();
       return;
     }
-
     final wasCheckedIn = isCheckedIn.value;
     final serverStatus =
         (checkinData['status'] as String?)?.toLowerCase() ?? 'none';
@@ -70,23 +70,21 @@ class HomeController extends GetxController {
       newPayment = 'paid';
     }
 
-    if (paymentStatus.value == 'pending' && newPayment != 'pending') {
-      print('pending lokal masih menunggu konfirmasi');
-    } else {
-      paymentStatus.value = newPayment;
-    }
+    paymentStatus.value = newPayment;
 
-    // Token handling
+    /// Token handling – versi lebih protektif
     final serverToken =
-        (checkinData['snap_token'] ?? checkinData['token'] ?? '') as String;
-    if (paymentStatus.value == 'pending' && serverToken.isNotEmpty) {
-      if (snapToken.value.isEmpty) {
+        (checkinData['snap_token'] ??
+                checkinData['token'] ??
+                checkinData['qris_token'] ??
+                '')
+            as String;
+    if (serverToken.isNotEmpty) {
+      if (snapToken.value != serverToken) {
         snapToken.value = serverToken;
-        print(
-          '→ Snap token baru diterima: ${snapToken.value.substring(0, 10)}...',
-        );
       }
-    } else {
+    }
+    if (paymentStatus.value != 'pending' && snapToken.value.isNotEmpty) {
       snapToken.value = '';
     }
 
@@ -99,6 +97,8 @@ class HomeController extends GetxController {
       statusText.value = 'Off';
     }
 
+    _startPollingCheckInSession();
+
     // Notifikasi transisi ke aktif
     if (!wasCheckedIn && isCheckedIn.value) {
       Get.snackbar(
@@ -110,12 +110,6 @@ class HomeController extends GetxController {
         duration: const Duration(seconds: 5),
       );
     }
-    print(
-      '→ Parsed → checkedIn: ${isCheckedIn.value} | '
-      'payment: ${paymentStatus.value} | '
-      'token: ${snapToken.value.isNotEmpty ? "ada" : "kosong"} | '
-      'statusText: ${statusText.value} | serverStatus: $serverStatus',
-    );
   }
 
   void _resetToIdle() {
@@ -141,64 +135,83 @@ class HomeController extends GetxController {
   void _startPollingCheckInSession() {
     _statusPollingTimer?.cancel();
 
-    _statusPollingTimer = Timer.periodic(const Duration(seconds: 6), (
-      timer,
-    ) async {
-      if (paymentStatus.value != 'pending') {
-        timer.cancel();
-        return;
-      }
-
-      await loadCheckInStatus();
-      if (paymentStatus.value != 'pending' || isCheckedIn.value) {
-        timer.cancel();
-      }
-    });
+    if (paymentStatus.value == 'pending') {
+      _statusPollingTimer = Timer.periodic(const Duration(seconds: 8), (
+        timer,
+      ) async {
+        await refreshSessionStatus();
+        if (paymentStatus.value != 'pending') {
+          timer.cancel();
+        }
+      });
+    }
   }
 
   Future<void> toggleCheckInOut() async {
-    if (isProcessing.value) return;
     isProcessing.value = true;
     try {
       await refreshSessionStatus();
+      if (paymentStatus.value == 'pending') {
+        print('→ Status sudah pending setelah refresh');
+        Get.snackbar(
+          'Sukses',
+          'Silakan bayar melalui QRIS',
+          backgroundColor: Colors.green[700],
+        );
+        if (snapToken.value.isEmpty) {
+          await retryPay();
+        } else {
+          print('→ Token sudah ada, skip retryPay');
+        }
+        return;
+      }
       final bool shouldCheckOut = isCheckedIn.value;
       if (!shouldCheckOut) {
-        // CHECK-IN
         final res = await _authService.checkIn();
-        print('CHECK-IN RESPONSE: $res');
-
         if (!_isApiSuccess(res)) {
           final msg = res?['message'] ?? res?['error'] ?? 'Gagal check-in';
-          print('→ CHECK-IN GAGAL: $msg');
-          Get.snackbar('Gagal Check-In', msg, backgroundColor: Colors.red[700]);
+
+          // Handle kasus pending existing
+          if (msg.toLowerCase().contains('pending') ||
+              msg.toLowerCase().contains('active')) {
+            if (snapToken.value.isEmpty) {
+              await retryPay();
+            }
+          } else {
+            Get.snackbar(
+              'Gagal Check-In',
+              msg,
+              backgroundColor: Colors.red[700],
+            );
+          }
           return;
         }
-
         await refreshSessionStatus();
         if (paymentStatus.value == 'pending') {
-          _startPollingCheckInSession();
           Get.snackbar(
             'Sukses',
             'Silakan bayar melalui QRIS',
             backgroundColor: Colors.green[700],
           );
+          if (snapToken.value.isEmpty) {
+            print("retryPay dipanggil di toggle");
+            await retryPay();
+          }
         } else if (isCheckedIn.value) {
           Get.snackbar(
             'Check-In Berhasil',
             'Sesi langsung aktif',
             backgroundColor: Colors.green[800],
           );
-        } else {
-          await retryPay();
         }
       } else {
         // CHECK-OUT
         final res = await _authService.checkout();
-        print('CHECK-OUT RESPONSE FULL: $res');
-
         if (!_isApiSuccess(res)) {
           final msg =
               res?['message'] ?? res?['error'] ?? 'Check-out ditolak server';
+          print('→ CHECK-OUT GAGAL: $msg');
+          print('Full response: $res');
           Get.snackbar(
             'Gagal Check-Out',
             msg,
@@ -206,11 +219,12 @@ class HomeController extends GetxController {
           );
           return;
         }
-
+        // Update
         isCheckedIn.value = false;
         paymentStatus.value = 'none';
         snapToken.value = '';
         statusText.value = 'Off';
+
         Get.snackbar(
           'Check-Out Berhasil',
           res?['message'] ?? 'Sesi telah diakhiri',
@@ -218,6 +232,7 @@ class HomeController extends GetxController {
           colorText: Colors.white,
         );
         await refreshWithDelay();
+
         if (isCheckedIn.value) {
           Get.snackbar(
             'Peringatan',
@@ -228,7 +243,7 @@ class HomeController extends GetxController {
         }
       }
     } catch (e, stack) {
-      print('→ EXCEPTION di toggleCheckInOut: $e');
+      print('EXCEPTION di toggleCheckInOut: $e');
       print('Stack: $stack');
       Get.snackbar(
         'Error',
@@ -237,52 +252,44 @@ class HomeController extends GetxController {
       );
     } finally {
       isProcessing.value = false;
-      await refreshSessionStatus();
+      if (!(paymentStatus.value == 'pending' && snapToken.value.isNotEmpty)) {
+        await refreshSessionStatus();
+      }
     }
   }
 
   bool _isApiSuccess(Map<String, dynamic>? res) {
     if (res == null) return false;
-
     final code = res['response_code']?.toString();
     final statusLower = (res['status'] as String?)?.toLowerCase();
     final successFlag = res['success'] == true;
-
     final isSuccessPattern =
         successFlag ||
         statusLower == 'success' ||
         code == '200' ||
         code == '201';
-
     final hasErrorIndication =
         res.containsKey('error') ||
         statusLower == 'error' ||
         statusLower == 'failed' ||
         (code != null && code.startsWith('4'));
-
     if (isSuccessPattern && !hasErrorIndication) {
       return true;
     }
-
-    if (isSuccessPattern && hasErrorIndication) {
-      //
-    }
-
     return false;
   }
 
   Future<void> retryPay() async {
-    if (isProcessing.value) return;
+    // if (isProcessing.value) return;
     isProcessing.value = true;
     try {
       final res = await _authService.pay();
       await _handlePayResponse(res);
     } catch (e) {
-      print('Retry pay error: $e');
       Get.snackbar('Error', 'Gagal membuat pembayaran: $e');
     } finally {
       isProcessing.value = false;
-      await refreshSessionStatus();
+      // await refreshSessionStatus();
     }
   }
 
@@ -294,20 +301,16 @@ class HomeController extends GetxController {
 
     if (_isApiSuccess(res)) {
       final data = res['data'] as Map<String, dynamic>? ?? res;
-      final token =
-          (data['snap_token'] ?? data['token'] ?? data['qris_token'] ?? '')
-              as String;
-
-      snapToken.value = token;
-
+      final token = (data['snap_token'] ?? data['token']) as String;
       if (token.isNotEmpty) {
+        snapToken.value = token;
         paymentStatus.value = 'pending';
+        print('Token berhasil: $token');
         Get.snackbar(
           'Sukses',
           'QRIS siap dibayar',
           backgroundColor: Colors.green,
         );
-        _startPollingCheckInSession();
       } else {
         Get.snackbar('Peringatan', 'Token pembayaran kosong');
       }

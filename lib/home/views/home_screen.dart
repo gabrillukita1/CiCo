@@ -91,8 +91,9 @@ class HomeScreen extends GetView<HomeController> {
 
               if (isPending) {
                 buttonText = "Menunggu Pembayaran...";
+                print("token: ${controller.snapToken.value}");
                 buttonColor = Colors.green[700]!;
-                isEnabled = false; // disable swipe saat pending
+                // isEnabled = false;
               } else if (isCheckedIn) {
                 buttonText = "Swipe untuk Check-Out";
                 buttonColor = Colors.amber[700]!;
@@ -115,15 +116,16 @@ class HomeScreen extends GetView<HomeController> {
                     activeTrackColor: buttonColor.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(16),
                     height: 80,
-                    enabled: isEnabled && !isProcessing,
+                    enabled:
+                        isEnabled &&
+                        !isProcessing,
                     onSwipe: isEnabled && !isProcessing
                         ? () async {
-                            print('===== SWIPE BERHASIL =====');
-
+                            print('===== SWIPE BERHASIL TERDETEKSI! =====');
                             controller.isProcessing.value = true;
-
                             try {
-                              await controller.toggleCheckInOut();
+                              await controller
+                                  .toggleCheckInOut();
                             } catch (e) {
                               print('Swipe error: $e');
                               Get.snackbar('Error', 'Gagal memproses: $e');
@@ -208,6 +210,7 @@ class HomeScreen extends GetView<HomeController> {
                 );
               }
 
+              // Tampilkan ikon sukses setelah paid
               if (controller.isCheckedIn.value) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 40),
