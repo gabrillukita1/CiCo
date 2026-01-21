@@ -10,12 +10,12 @@ class HomeController extends GetxController {
   final userName = ''.obs;
   final userEmail = ''.obs;
 
+  final checkInStatus = ''.obs;
   final isCheckedIn = false.obs;
   final statusText = 'Off'.obs;
   final isProcessing = false.obs;
 
   final snapToken = ''.obs;
-  final paymentStatus = 'none'.obs;
 
   Timer? _statusPollingTimer;
 
@@ -24,12 +24,10 @@ class HomeController extends GetxController {
     super.onInit();
     final args = Get.arguments;
     if (args is Map) {
-      userName.value = args['name']?.toString() ?? 'Admin';
-      userEmail.value = args['email']?.toString() ?? 'admin@cico.com';
+      userName.value = args['name'].toString();
+      userEmail.value = args['email'].toString();
     }
-    loadCheckInStatus().then((_) {
-      _startPollingCheckInSession(); // pastikan polling jalan kalau pending
-    });
+    loadCheckInStatus();
   }
 
   @override
@@ -40,6 +38,7 @@ class HomeController extends GetxController {
   }
 
   Future<void> loadCheckInStatus() async {
+    final previousStatus = checkInStatus.value;
     final session = await _authService.getCheckInSession();
     if (session == null || session['status'] != 'success') {
       _resetToIdle();
@@ -52,55 +51,39 @@ class HomeController extends GetxController {
       _resetToIdle();
       return;
     }
-    final wasCheckedIn = isCheckedIn.value;
     final serverStatus =
         (checkinData['status'] as String?)?.toLowerCase() ?? 'none';
-    final hasStartTime = checkinData['start_time'] != null;
+    checkInStatus.value = serverStatus;
 
-    isCheckedIn.value =
-        hasStartTime ||
-        serverStatus == 'active' ||
-        serverStatus == 'in_progress';
+    print("checkInStatus: ${checkInStatus.value}");
 
-    // Infer payment status
-    String newPayment = 'none';
-    if (serverStatus == 'waiting_for_payment') {
-      newPayment = 'pending';
-    } else if (isCheckedIn.value) {
-      newPayment = 'paid';
+    switch (serverStatus) {
+      // Active
+      case 'active':
+        isCheckedIn.value = true;
+        statusText.value = 'Aktif';
+        snapToken.value = '';
+        break;
+      // Pending payment
+      case 'waiting_for_payment':
+        isCheckedIn.value = false;
+        statusText.value = 'Menunggu Pembayaran';
+        final token =
+            (checkinData['snap_token'] ?? checkinData['token'] ?? '') as String;
+        if (token.isNotEmpty && token != snapToken.value) {
+          snapToken.value = token;
+        }
+        _startPollingCheckInSession();
+        break;
+      // Expired
+      case 'expired':
+      default:
+        _resetToIdle();
+        break;
     }
-
-    paymentStatus.value = newPayment;
-
-    /// Token handling – versi lebih protektif
-    final serverToken =
-        (checkinData['snap_token'] ??
-                checkinData['token'] ??
-                checkinData['qris_token'] ??
-                '')
-            as String;
-    if (serverToken.isNotEmpty) {
-      if (snapToken.value != serverToken) {
-        snapToken.value = serverToken;
-      }
-    }
-    if (paymentStatus.value != 'pending' && snapToken.value.isNotEmpty) {
-      snapToken.value = '';
-    }
-
-    // Update UI text
-    if (paymentStatus.value == 'pending') {
-      statusText.value = 'Menunggu Pembayaran';
-    } else if (isCheckedIn.value) {
-      statusText.value = 'Aktif';
-    } else {
-      statusText.value = 'Off';
-    }
-
-    _startPollingCheckInSession();
 
     // Notifikasi transisi ke aktif
-    if (!wasCheckedIn && isCheckedIn.value) {
+    if (previousStatus != 'active' && checkInStatus.value == 'active') {
       Get.snackbar(
         'Pembayaran Berhasil!',
         'Sesi aktif sampai ${checkinData['end_time'] ?? 'waktu tertentu'}',
@@ -115,7 +98,7 @@ class HomeController extends GetxController {
   void _resetToIdle() {
     isCheckedIn.value = false;
     statusText.value = 'Off';
-    paymentStatus.value = 'none';
+    checkInStatus.value = 'expired';
     snapToken.value = '';
   }
 
@@ -135,12 +118,12 @@ class HomeController extends GetxController {
   void _startPollingCheckInSession() {
     _statusPollingTimer?.cancel();
 
-    if (paymentStatus.value == 'pending') {
+    if (checkInStatus.value == 'waiting_for_payment') {
       _statusPollingTimer = Timer.periodic(const Duration(seconds: 8), (
         timer,
       ) async {
         await refreshSessionStatus();
-        if (paymentStatus.value != 'pending') {
+        if (checkInStatus.value != 'waiting_for_payment') {
           timer.cancel();
         }
       });
@@ -151,7 +134,7 @@ class HomeController extends GetxController {
     isProcessing.value = true;
     try {
       await refreshSessionStatus();
-      if (paymentStatus.value == 'pending') {
+      if (checkInStatus.value == 'waiting_for_payment') {
         print('→ Status sudah pending setelah refresh');
         Get.snackbar(
           'Sukses',
@@ -172,7 +155,7 @@ class HomeController extends GetxController {
           final msg = res?['message'] ?? res?['error'] ?? 'Gagal check-in';
 
           // Handle kasus pending existing
-          if (msg.toLowerCase().contains('pending') ||
+          if (msg.toLowerCase().contains('waiting_for_payment') ||
               msg.toLowerCase().contains('active')) {
             if (snapToken.value.isEmpty) {
               await retryPay();
@@ -187,7 +170,7 @@ class HomeController extends GetxController {
           return;
         }
         await refreshSessionStatus();
-        if (paymentStatus.value == 'pending') {
+        if (checkInStatus.value == 'waiting_for_payment') {
           Get.snackbar(
             'Sukses',
             'Silakan bayar melalui QRIS',
@@ -221,7 +204,7 @@ class HomeController extends GetxController {
         }
         // Update
         isCheckedIn.value = false;
-        paymentStatus.value = 'none';
+        checkInStatus.value = 'expired';
         snapToken.value = '';
         statusText.value = 'Off';
 
@@ -252,7 +235,8 @@ class HomeController extends GetxController {
       );
     } finally {
       isProcessing.value = false;
-      if (!(paymentStatus.value == 'pending' && snapToken.value.isNotEmpty)) {
+      if (!(checkInStatus.value == 'waiting_for_payment' &&
+          snapToken.value.isNotEmpty)) {
         await refreshSessionStatus();
       }
     }
@@ -304,7 +288,7 @@ class HomeController extends GetxController {
       final token = (data['snap_token'] ?? data['token']) as String;
       if (token.isNotEmpty) {
         snapToken.value = token;
-        paymentStatus.value = 'pending';
+        checkInStatus.value = 'waiting_for_payment';
         print('Token berhasil: $token');
         Get.snackbar(
           'Sukses',

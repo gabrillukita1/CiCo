@@ -81,15 +81,14 @@ class HomeScreen extends GetView<HomeController> {
             // Swipe Button
             Obx(() {
               final isProcessing = controller.isProcessing.value;
-              final paymentStatus = controller.paymentStatus.value;
+              final status = controller.checkInStatus.value;
               final isCheckedIn = controller.isCheckedIn.value;
-              final isPending = paymentStatus == 'pending';
 
               String buttonText;
               Color buttonColor;
               bool isEnabled = true;
 
-              if (isPending) {
+              if (status == 'waiting_for_payment') {
                 buttonText = "Menunggu Pembayaran...";
                 print("token: ${controller.snapToken.value}");
                 buttonColor = Colors.green[700]!;
@@ -166,7 +165,7 @@ class HomeScreen extends GetView<HomeController> {
 
             // QR + Status Pembayaran
             Obx(() {
-              if (controller.paymentStatus.value == 'pending' &&
+              if (controller.checkInStatus.value == 'waiting_for_payment' &&
                   controller.snapToken.isNotEmpty) {
                 return Column(
                   children: [
