@@ -80,7 +80,7 @@ class AuthService {
       } else if (e.response != null) {
         message = e.response?.data['message'] ?? 'Email atau password salah';
       } else if (e.message?.contains('HandshakeException') == true) {
-        message = 'Error';
+        message = 'Masalah sertifikat SSL (sudah dibypass untuk debug)';
       }
 
       Get.snackbar(
@@ -139,7 +139,7 @@ class AuthService {
     try {
       final response = await _dio.post('/checkin');
       return response
-          .data;
+          .data; // misal: {"success": true, "message": "Check-in berhasil"}
     } on DioException catch (e) {
       return {
         'success': false,
@@ -176,7 +176,7 @@ class AuthService {
     try {
       final response = await _dio.get('/checkin-session');
       return response
-          .data;
+          .data; // misal: {"is_checked_in": true, "payment_status": "paid"}
     } on DioException {
       return null;
     }

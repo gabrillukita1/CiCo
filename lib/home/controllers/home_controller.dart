@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cico_project/auth/services/biometric_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../auth/services/auth_service.dart';
@@ -16,6 +17,8 @@ class HomeController extends GetxController {
   final isProcessing = false.obs;
 
   final snapToken = ''.obs;
+
+  final biometricService = BiometricService();
 
   Timer? _statusPollingTimer;
 
@@ -150,6 +153,12 @@ class HomeController extends GetxController {
       }
       final bool shouldCheckOut = isCheckedIn.value;
       if (!shouldCheckOut) {
+        // Check-in (biometric)
+        final bool canAuthenticate = await requestBiometricForCheckIn();
+        if (!canAuthenticate) {
+          return;
+        }
+        // Check-in
         final res = await _authService.checkIn();
         if (!_isApiSuccess(res)) {
           final msg = res?['message'] ?? res?['error'] ?? 'Gagal check-in';
@@ -219,7 +228,7 @@ class HomeController extends GetxController {
         if (isCheckedIn.value) {
           Get.snackbar(
             'Peringatan',
-            'Check-out tampak berhasil tapi sesi masih aktif di server.\nTunggu 10-30 detik atau cek backend.',
+            'Check-out berhasil tapi sesi masih aktif di server.\nTunggu 10-30 detik atau cek backend.',
             backgroundColor: Colors.orange[800],
             duration: const Duration(seconds: 7),
           );
@@ -311,6 +320,37 @@ class HomeController extends GetxController {
     } finally {
       userName.value = '';
       Get.offAllNamed('/login');
+    }
+  }
+
+  Future<bool> requestBiometricForCheckIn() async {
+    try {
+      final bool authenticated = await biometricService.authenticate(
+        reason: 'Konfirmasi check-in',
+      );
+      if (authenticated) {
+        return true;
+      } else {
+        Get.snackbar(
+          'Verifikasi Gagal',
+          'Autentikasi biometrik dibutuhkan untuk check-in',
+          backgroundColor: Colors.orange[800],
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+          snackPosition: SnackPosition.TOP,
+        );
+        return false;
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error Biometrik',
+        'Gagal memverifikasi identitas: ${e.toString().split('\n').first}',
+        backgroundColor: Colors.red[800],
+        colorText: Colors.white,
+        duration: const Duration(seconds: 5),
+      );
+      // print('Biometric error: $e');
+      return false;
     }
   }
 }

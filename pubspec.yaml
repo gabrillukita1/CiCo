@@ -12,9 +12,16 @@ dependencies:
     sdk: flutter
   get: ^4.6.6
 
+  # Package QR code
+  qr_flutter: ^4.0.0
+
+  # biometric authentication
+  local_auth: ^2.3.0
+
   cupertino_icons: ^1.0.8
   dio: ^5.9.0
   get_storage: ^2.1.1
+  flutter_swipe_button: ^2.1.3
 
 dev_dependencies:
   flutter_test:
