@@ -12,6 +12,9 @@ class HomeController extends GetxController {
   final userName = ''.obs;
   final userEmail = ''.obs;
 
+  final startTime = ''.obs;
+  final endTime = ''.obs;
+
   final checkInStatus = ''.obs;
   final isCheckedIn = false.obs;
   final statusText = 'Off'.obs;
@@ -50,6 +53,13 @@ class HomeController extends GetxController {
     }
     final checkinData =
         session['data']?['checkin_session'] as Map<String, dynamic>?;
+
+    // Format time
+    final rawStart = checkinData?['start_time'];
+    final rawEnd = checkinData?['end_time'];
+    startTime.value = _formatTime(rawStart);
+    endTime.value = _formatTime(rawEnd);
+
     if (checkinData == null) {
       print('→ Tidak ada checkin_session di response');
       _resetToIdle();
@@ -76,10 +86,8 @@ class HomeController extends GetxController {
             (checkinData['snap_token'] ?? checkinData['token'] ?? '') as String;
         if (token.isNotEmpty && token != snapToken.value) {
           snapToken.value = token;
-          await Future.delayed(const Duration(milliseconds: 300), ()  async {
-            await Get.to(
-                  () => SnapPaymentPage(snapToken: snapToken.value),
-            );
+          await Future.delayed(const Duration(milliseconds: 300), () async {
+            await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
           });
         }
         _startPollingCheckInSession();
@@ -104,11 +112,23 @@ class HomeController extends GetxController {
     }
   }
 
+  String _formatTime(dynamic value) {
+    if (value == null) return '--:--';
+    try {
+      final dt = DateTime.parse(value.toString());
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '--:--';
+    }
+  }
+
   void _resetToIdle() {
     isCheckedIn.value = false;
     statusText.value = 'Off';
     checkInStatus.value = 'expired';
     snapToken.value = '';
+    startTime.value = '--:--';
+    endTime.value = '--:--';
   }
 
   Future<void> refreshSessionStatus() async {
@@ -150,10 +170,8 @@ class HomeController extends GetxController {
           'Silakan bayar melalui QRIS',
           backgroundColor: Colors.green[700],
         );
-        await Future.delayed(const Duration(milliseconds: 300), ()  async {
-          await Get.to(
-                () => SnapPaymentPage(snapToken: snapToken.value),
-          );
+        await Future.delayed(const Duration(milliseconds: 300), () async {
+          await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
         });
         if (snapToken.value.isEmpty) {
           await retryPay();
@@ -315,10 +333,8 @@ class HomeController extends GetxController {
           'QRIS siap dibayar',
           backgroundColor: Colors.green,
         );
-        await Future.delayed(const Duration(milliseconds: 300), ()  async {
-          await Get.to(
-                () => SnapPaymentPage(snapToken: snapToken.value),
-          );
+        await Future.delayed(const Duration(milliseconds: 300), () async {
+          await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
         });
       } else {
         Get.snackbar('Peringatan', 'Token pembayaran kosong');
