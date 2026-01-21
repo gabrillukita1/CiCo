@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cico_project/auth/services/biometric_service.dart';
+import 'package:cico_project/home/views/snap_payment_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../auth/services/auth_service.dart';
@@ -75,6 +76,11 @@ class HomeController extends GetxController {
             (checkinData['snap_token'] ?? checkinData['token'] ?? '') as String;
         if (token.isNotEmpty && token != snapToken.value) {
           snapToken.value = token;
+          await Future.delayed(const Duration(milliseconds: 300), ()  async {
+            await Get.to(
+                  () => SnapPaymentPage(snapToken: snapToken.value),
+            );
+          });
         }
         _startPollingCheckInSession();
         break;
@@ -144,6 +150,11 @@ class HomeController extends GetxController {
           'Silakan bayar melalui QRIS',
           backgroundColor: Colors.green[700],
         );
+        await Future.delayed(const Duration(milliseconds: 300), ()  async {
+          await Get.to(
+                () => SnapPaymentPage(snapToken: snapToken.value),
+          );
+        });
         if (snapToken.value.isEmpty) {
           await retryPay();
         } else {
@@ -304,6 +315,11 @@ class HomeController extends GetxController {
           'QRIS siap dibayar',
           backgroundColor: Colors.green,
         );
+        await Future.delayed(const Duration(milliseconds: 300), ()  async {
+          await Get.to(
+                () => SnapPaymentPage(snapToken: snapToken.value),
+          );
+        });
       } else {
         Get.snackbar('Peringatan', 'Token pembayaran kosong');
       }
