@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../services/auth_service.dart';
 
 class LoginController extends GetxController {
@@ -8,8 +9,6 @@ class LoginController extends GetxController {
   var isLoading = false.obs;
   var email = ''.obs;
   var password = ''.obs;
-
-  var userName = ''.obs;
 
   Future<void> login() async {
     if (email.value.isEmpty || password.value.isEmpty) {
@@ -30,16 +29,7 @@ class LoginController extends GetxController {
 
     if (result != null) {
       final user = result['user'];
-      userName.value = user['name'] ?? 'User';
 
-      Get.snackbar(
-        'Sukses!',
-        'Selamat datang, ${userName.value} 👋',
-        backgroundColor: Colors.green.withOpacity(0.9),
-        colorText: Colors.white,
-      );
-
-      // Pindah ke Home dan kirim data user
       Get.offAllNamed(
         '/home',
         arguments: {'name': user['name'], 'email': user['email']},
@@ -47,12 +37,13 @@ class LoginController extends GetxController {
     }
   }
 
-  // Fungsi logout
   Future<void> logout() async {
     isLoading.value = true;
+
     await _authService.performLogout();
+
     isLoading.value = false;
-    userName.value = '';
+
     Get.offAllNamed('/login');
   }
 }
