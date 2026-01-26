@@ -68,7 +68,6 @@ class AuthService {
         if (token != null) {
           await saveToken(token);
         }
-
         return {'user': user, 'token': token};
       }
     } on DioException catch (e) {
@@ -99,6 +98,22 @@ class AuthService {
       return null;
     }
     return null;
+  }
+
+  // VALIDATE TOKEN
+  Future<bool> isTokenValid() async {
+    final token = getToken();
+    if (token == null || token.isEmpty) return false;
+
+    _setAuthHeader();
+    try {
+      final response = await _dio.get('/me');
+      return response.statusCode == 200;
+    } catch (e) {
+      // Kalau 401 atau error lain → anggap invalid
+      await logoutLocal(); // hapus token yang rusak
+      return false;
+    }
   }
 
   // GET USER

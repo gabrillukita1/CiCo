@@ -86,9 +86,9 @@ class HomeController extends GetxController {
             (checkinData['snap_token'] ?? checkinData['token'] ?? '') as String;
         if (token.isNotEmpty && token != snapToken.value) {
           snapToken.value = token;
-          await Future.delayed(const Duration(milliseconds: 300), () async {
-            await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
-          });
+          // await Future.delayed(const Duration(milliseconds: 300), () async {
+          //   await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
+          // });
         }
         _startPollingCheckInSession();
         break;
@@ -170,14 +170,14 @@ class HomeController extends GetxController {
           'Silakan bayar melalui QRIS',
           backgroundColor: Colors.green[700],
         );
-        await Future.delayed(const Duration(milliseconds: 300), () async {
-          await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
-        });
         if (snapToken.value.isEmpty) {
           await retryPay();
         } else {
           print('→ Token sudah ada, skip retryPay');
         }
+        await Future.delayed(const Duration(milliseconds: 300), () async {
+          await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
+        });
         return;
       }
       final bool shouldCheckOut = isCheckedIn.value;
@@ -227,6 +227,16 @@ class HomeController extends GetxController {
         }
       } else {
         // CHECK-OUT
+        final confirm = await showConfirmationDialog(
+          title: 'Konfirmasi Check-Out',
+          message: 'Apakah kamu yakin ingin mengakhiri sesi check-in ini?',
+          confirmText: 'Ya, Check-Out',
+          confirmColor: Colors.red,
+        );
+        if (!confirm) {
+          return;
+        }
+
         final res = await _authService.checkout();
         if (!_isApiSuccess(res)) {
           final msg =
@@ -333,9 +343,9 @@ class HomeController extends GetxController {
           'QRIS siap dibayar',
           backgroundColor: Colors.green,
         );
-        await Future.delayed(const Duration(milliseconds: 300), () async {
-          await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
-        });
+        // await Future.delayed(const Duration(milliseconds: 300), () async {
+        //   await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
+        // });
       } else {
         Get.snackbar('Peringatan', 'Token pembayaran kosong');
       }
@@ -347,12 +357,58 @@ class HomeController extends GetxController {
   }
 
   Future<void> logout() async {
+    final confirm = await showConfirmationDialog(
+      title: 'Konfirmasi Logout',
+      message: 'Apakah kamu yakin ingin logout dari aplikasi?',
+      confirmText: 'Ya, Logout',
+      confirmColor: Colors.red,
+    );
+    if (!confirm) {
+      return;
+    }
     try {
       await _authService.performLogout();
     } finally {
       userName.value = '';
       Get.offAllNamed('/login');
     }
+  }
+
+  Future<bool> showConfirmationDialog({
+    required String title,
+    required String message,
+    String confirmText = 'Ya',
+    Color confirmColor = Colors.red,
+  }) async {
+    final result = await Get.dialog<bool>(
+      AlertDialog(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(message),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: confirmColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Get.back(result: true),
+            child: Text(
+              confirmText,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+
+    return result ?? false;
   }
 
   Future<bool> requestBiometricForCheckIn() async {
@@ -383,6 +439,18 @@ class HomeController extends GetxController {
       );
       // print('Biometric error: $e');
       return false;
+    }
+  }
+
+  Future<void> manualRefresh() async {
+    try {
+      await loadCheckInStatus();
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal refresh status',
+        backgroundColor: Colors.red[700],
+      );
     }
   }
 }

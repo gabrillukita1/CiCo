@@ -38,3 +38,4 @@ flutter:
     - assets\images\logo.png
     - assets\images\success_icon.png
     - assets\images\reject_icon.png
+    - assets\images\waiting_for_payment.png
