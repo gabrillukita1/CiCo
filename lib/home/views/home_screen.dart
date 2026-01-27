@@ -52,11 +52,9 @@ class HomeScreen extends GetView<HomeController> {
                     final isCheckedIn = controller.isCheckedIn.value;
                     final isWaiting =
                         controller.checkInStatus.value == 'waiting_for_payment';
-
                     Color trackColor = Colors.black;
                     Color thumbColor;
                     String text;
-
                     if (isWaiting) {
                       thumbColor = Colors.orange;
                       text = 'Swipe untuk Lanjut Pembayaran';
@@ -67,13 +65,11 @@ class HomeScreen extends GetView<HomeController> {
                       thumbColor = Colors.green;
                       text = 'Swipe untuk Check-In';
                     }
-
                     return SwipeButton.expand(
                       height: 64,
                       activeTrackColor: trackColor,
                       activeThumbColor: thumbColor,
                       onSwipe: controller.toggleCheckInOut,
-
                       thumb: const Icon(
                         Icons.double_arrow_rounded,
                         color: Colors.white,
@@ -161,6 +157,24 @@ class HomeScreen extends GetView<HomeController> {
                           fontSize: 13,
                           color: Colors.grey,
                         ),
+                      ),
+                      const SizedBox(height: 4),
+                      Obx(
+                        () => controller.currentAddress.value.isNotEmpty
+                            ? Text(
+                                controller.currentAddress.value,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blueGrey,
+                                ),
+                              )
+                            : const Text(
+                                'Mengambil lokasi...',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
                       ),
                     ],
                   ),

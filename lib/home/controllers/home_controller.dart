@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../auth/services/auth_service.dart';
 
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+
 class HomeController extends GetxController {
   final AuthService _authService = AuthService();
 
@@ -24,6 +27,9 @@ class HomeController extends GetxController {
 
   final biometricService = BiometricService();
 
+  final currentPosition = Rxn<Position>();
+  final currentAddress = ''.obs;
+
   Timer? _statusPollingTimer;
 
   @override
@@ -35,6 +41,7 @@ class HomeController extends GetxController {
       userEmail.value = args['email'].toString();
     }
     loadCheckInStatus();
+    fetchCurrentLocation();
   }
 
   @override
@@ -42,6 +49,53 @@ class HomeController extends GetxController {
     _statusPollingTimer?.cancel();
     _statusPollingTimer = null;
     super.onClose();
+  }
+
+  Future<void> fetchCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        Get.snackbar("Error", "Lokasi tidak aktif");
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          Get.snackbar("Error", "Izin lokasi ditolak");
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        Get.snackbar("Error", "Izin lokasi ditolak permanen");
+        return;
+      }
+      Position pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      currentPosition.value = pos;
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        pos.latitude,
+        pos.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        List<String?> parts = [
+          // place.street,
+          place.subLocality,
+          place.locality,
+          place.administrativeArea,
+          place.country,
+        ].where((e) => e != null && e.trim().isNotEmpty).toList();
+
+        currentAddress.value = parts.join(', ');
+      } else {
+        currentAddress.value = "Alamat tidak ditemukan";
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Gagal ambil lokasi: $e");
+      currentAddress.value = "Gagal mendapatkan alamat";
+    }
   }
 
   Future<void> loadCheckInStatus() async {

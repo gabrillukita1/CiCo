@@ -14,6 +14,7 @@ class SnapPaymentPage extends StatefulWidget {
 
 class _SnapPaymentPageState extends State<SnapPaymentPage> {
   late final WebViewController _controller;
+  bool _snapCalled = false;
 
   @override
   void initState() {
@@ -21,23 +22,20 @@ class _SnapPaymentPageState extends State<SnapPaymentPage> {
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+        'SnapChannel',
+        onMessageReceived: (message) {
+          final status = message.message;
+          Get.back(result: status);
+        },
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (url) {
-            _callSnap();
-          },
-          onNavigationRequest: (request) {
-            // Tangkap redirect status
-            if (request.url.contains('success')) {
-              Get.back(result: 'success');
+            if (!_snapCalled) {
+              _snapCalled = true;
+              _callSnap();
             }
-            if (request.url.contains('pending')) {
-              Get.back(result: 'pending');
-            }
-            if (request.url.contains('error')) {
-              Get.back(result: 'failed');
-            }
-            return NavigationDecision.navigate;
           },
         ),
       )
@@ -48,16 +46,16 @@ class _SnapPaymentPageState extends State<SnapPaymentPage> {
     _controller.runJavaScript("""
       snap.pay('${widget.snapToken}', {
         onSuccess: function(result){
-          window.location.href = 'success';
+          SnapChannel.postMessage('success');
         },
         onPending: function(result){
-          window.location.href = 'pending';
+          SnapChannel.postMessage('pending');
         },
         onError: function(result){
-          window.location.href = 'error';
+          SnapChannel.postMessage('failed');
         },
         onClose: function(){
-          window.location.href = 'closed';
+          SnapChannel.postMessage('closed');
         }
       });
     """);
