@@ -86,9 +86,6 @@ class HomeController extends GetxController {
             (checkinData['snap_token'] ?? checkinData['token'] ?? '') as String;
         if (token.isNotEmpty && token != snapToken.value) {
           snapToken.value = token;
-          // await Future.delayed(const Duration(milliseconds: 300), () async {
-          //   await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
-          // });
         }
         _startPollingCheckInSession();
         break;
@@ -160,122 +157,91 @@ class HomeController extends GetxController {
   }
 
   Future<void> toggleCheckInOut() async {
+    if (isProcessing.value) return;
     isProcessing.value = true;
+
     try {
       await refreshSessionStatus();
       if (checkInStatus.value == 'waiting_for_payment') {
-        print('→ Status sudah pending setelah refresh');
-        Get.snackbar(
-          'Sukses',
-          'Silakan bayar melalui QRIS',
-          backgroundColor: Colors.green[700],
-        );
         if (snapToken.value.isEmpty) {
           await retryPay();
-        } else {
-          print('→ Token sudah ada, skip retryPay');
         }
-        await Future.delayed(const Duration(milliseconds: 300), () async {
-          await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
-        });
+        await Future.delayed(const Duration(milliseconds: 200));
+        await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
         return;
       }
-      final bool shouldCheckOut = isCheckedIn.value;
+      // CHECK-IN
+      final bool shouldCheckOut = checkInStatus.value == 'active';
       if (!shouldCheckOut) {
-        // Check-in (biometric)
-        final bool canAuthenticate = await requestBiometricForCheckIn();
-        if (!canAuthenticate) {
-          return;
-        }
-        // Check-in
+        // BIOMETRIC AUTHENTICATION
+        final bool canAuth = await requestBiometricForCheckIn();
+        if (!canAuth) return;
         final res = await _authService.checkIn();
         if (!_isApiSuccess(res)) {
           final msg = res?['message'] ?? res?['error'] ?? 'Gagal check-in';
-
-          // Handle kasus pending existing
           if (msg.toLowerCase().contains('waiting_for_payment') ||
               msg.toLowerCase().contains('active')) {
-            if (snapToken.value.isEmpty) {
-              await retryPay();
-            }
+            await refreshSessionStatus();
           } else {
             Get.snackbar(
               'Gagal Check-In',
               msg,
               backgroundColor: Colors.red[700],
             );
+            return;
           }
-          return;
         }
+        // WAITING FOR PAYMENT
         await refreshSessionStatus();
         if (checkInStatus.value == 'waiting_for_payment') {
-          Get.snackbar(
-            'Sukses',
-            'Silakan bayar melalui QRIS',
-            backgroundColor: Colors.green[700],
-          );
           if (snapToken.value.isEmpty) {
-            print("retryPay dipanggil di toggle");
             await retryPay();
           }
-        } else if (isCheckedIn.value) {
+          await Future.delayed(const Duration(milliseconds: 200));
+          await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
+          return;
+        }
+        if (checkInStatus.value == 'active') {
           Get.snackbar(
             'Check-In Berhasil',
             'Sesi langsung aktif',
             backgroundColor: Colors.green[800],
           );
         }
-      } else {
-        // CHECK-OUT
-        final confirm = await showConfirmationDialog(
-          title: 'Konfirmasi Check-Out',
-          message: 'Apakah kamu yakin ingin mengakhiri sesi check-in ini?',
-          confirmText: 'Ya, Check-Out',
-          confirmColor: Colors.red,
-        );
-        if (!confirm) {
-          return;
-        }
-
-        final res = await _authService.checkout();
-        if (!_isApiSuccess(res)) {
-          final msg =
-              res?['message'] ?? res?['error'] ?? 'Check-out ditolak server';
-          print('→ CHECK-OUT GAGAL: $msg');
-          print('Full response: $res');
-          Get.snackbar(
-            'Gagal Check-Out',
-            msg,
-            backgroundColor: Colors.red[700],
-          );
-          return;
-        }
-        // Update
-        isCheckedIn.value = false;
-        checkInStatus.value = 'expired';
-        snapToken.value = '';
-        statusText.value = 'Off';
-
-        Get.snackbar(
-          'Check-Out Berhasil',
-          res?['message'] ?? 'Sesi telah diakhiri',
-          backgroundColor: Colors.amber[700],
-          colorText: Colors.white,
-        );
-        await refreshWithDelay();
-
-        if (isCheckedIn.value) {
-          Get.snackbar(
-            'Peringatan',
-            'Check-out berhasil tapi sesi masih aktif di server.\nTunggu 10-30 detik atau cek backend.',
-            backgroundColor: Colors.orange[800],
-            duration: const Duration(seconds: 7),
-          );
-        }
+        return;
       }
+      // CHECK-OUT
+      final confirm = await showConfirmationDialog(
+        title: 'Konfirmasi Check-Out',
+        message: 'Apakah kamu yakin ingin mengakhiri sesi check-in ini?',
+        confirmText: 'Ya, Check-Out',
+        confirmColor: Colors.red,
+      );
+      if (!confirm) return;
+      final res = await _authService.checkout();
+      if (!_isApiSuccess(res)) {
+        final msg =
+            res?['message'] ?? res?['error'] ?? 'Check-out ditolak server';
+        Get.snackbar('Gagal Check-Out', msg, backgroundColor: Colors.red[700]);
+        return;
+      }
+
+      // Reset lokal, server akan disync ulang
+      isCheckedIn.value = false;
+      checkInStatus.value = 'expired';
+      snapToken.value = '';
+      statusText.value = 'Off';
+
+      Get.snackbar(
+        'Check-Out Berhasil',
+        res?['message'] ?? 'Sesi telah diakhiri',
+        backgroundColor: Colors.amber[700],
+        colorText: Colors.white,
+      );
+      await refreshWithDelay();
     } catch (e, stack) {
-      print('EXCEPTION di toggleCheckInOut: $e');
-      print('Stack: $stack');
+      print('EXCEPTION toggleCheckInOut: $e');
+      print(stack);
       Get.snackbar(
         'Error',
         'Gagal proses: $e',
@@ -283,10 +249,6 @@ class HomeController extends GetxController {
       );
     } finally {
       isProcessing.value = false;
-      if (!(checkInStatus.value == 'waiting_for_payment' &&
-          snapToken.value.isNotEmpty)) {
-        await refreshSessionStatus();
-      }
     }
   }
 
@@ -343,9 +305,6 @@ class HomeController extends GetxController {
           'QRIS siap dibayar',
           backgroundColor: Colors.green,
         );
-        // await Future.delayed(const Duration(milliseconds: 300), () async {
-        //   await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
-        // });
       } else {
         Get.snackbar('Peringatan', 'Token pembayaran kosong');
       }

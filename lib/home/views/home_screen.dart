@@ -50,25 +50,41 @@ class HomeScreen extends GetView<HomeController> {
                   Obx(() {
                     final isProcessing = controller.isProcessing.value;
                     final isCheckedIn = controller.isCheckedIn.value;
+                    final isWaiting =
+                        controller.checkInStatus.value == 'waiting_for_payment';
+
+                    Color trackColor = Colors.black;
+                    Color thumbColor;
+                    String text;
+
+                    if (isWaiting) {
+                      thumbColor = Colors.orange;
+                      text = 'Swipe untuk Lanjut Pembayaran';
+                    } else if (isCheckedIn) {
+                      thumbColor = Colors.red;
+                      text = 'Swipe untuk Check-Out';
+                    } else {
+                      thumbColor = Colors.green;
+                      text = 'Swipe untuk Check-In';
+                    }
 
                     return SwipeButton.expand(
                       height: 64,
-                      activeTrackColor: Colors.black,
+                      activeTrackColor: trackColor,
+                      activeThumbColor: thumbColor,
+                      onSwipe: controller.toggleCheckInOut, // ✅ tetap aktif
+
                       thumb: const Icon(
                         Icons.double_arrow_rounded,
                         color: Colors.white,
                       ),
-                      activeThumbColor: isCheckedIn ? Colors.red : Colors.green,
-                      onSwipe: controller.toggleCheckInOut,
                       child: Center(
                         child: isProcessing
                             ? const CircularProgressIndicator(
                                 color: Colors.white,
                               )
                             : Text(
-                                isCheckedIn
-                                    ? 'Swipe untuk Check-Out'
-                                    : 'Swipe untuk Check-In',
+                                text,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
