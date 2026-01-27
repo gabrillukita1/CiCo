@@ -72,7 +72,7 @@ class HomeScreen extends GetView<HomeController> {
                       height: 64,
                       activeTrackColor: trackColor,
                       activeThumbColor: thumbColor,
-                      onSwipe: controller.toggleCheckInOut, // ✅ tetap aktif
+                      onSwipe: controller.toggleCheckInOut,
 
                       thumb: const Icon(
                         Icons.double_arrow_rounded,

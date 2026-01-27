@@ -166,9 +166,14 @@ class HomeController extends GetxController {
         if (snapToken.value.isEmpty) {
           await retryPay();
         }
+        // WEBVIEW PAYMENT
         await Future.delayed(const Duration(milliseconds: 200));
-        await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
-        return;
+        final result = await Get.to(
+          () => SnapPaymentPage(snapToken: snapToken.value),
+        );
+        if (result == 'success') {
+          await refreshSessionStatus();
+        }
       }
       // CHECK-IN
       final bool shouldCheckOut = checkInStatus.value == 'active';
