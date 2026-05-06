@@ -217,9 +217,10 @@ class HomeController extends GetxController {
     try {
       await refreshSessionStatus();
       if (checkInStatus.value == 'waiting_for_payment') {
-        if (snapToken.value.isEmpty) {
-          await retryPay();
-        }
+        // if (snapToken.value.isEmpty) {
+        //   await retryPay();
+        // }
+        await retryPay();
         // WEBVIEW PAYMENT
         await Future.delayed(const Duration(milliseconds: 200));
         final result = await Get.to(
@@ -228,6 +229,7 @@ class HomeController extends GetxController {
         if (result == 'success') {
           await refreshSessionStatus();
         }
+        return;
       }
       // CHECK-IN
       final bool shouldCheckOut = checkInStatus.value == 'active';
