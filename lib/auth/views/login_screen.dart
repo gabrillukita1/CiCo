@@ -27,24 +27,26 @@ class LoginScreen extends GetView<LoginController> {
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  getHeaderForm(),
+              child: AutofillGroup(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    getHeaderForm(),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  getEmailField(),
+                    getEmailField(),
 
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  getPasswordField(),
+                    getPasswordField(),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  getLoginButton(),
-                ],
+                    getLoginButton(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -79,6 +81,9 @@ class LoginScreen extends GetView<LoginController> {
         const SizedBox(height: 8),
 
         TextFormField(
+          controller: controller.emailController,
+          autofillHints: const [AutofillHints.email, AutofillHints.username],
+          keyboardType: TextInputType.emailAddress,
           cursorColor: Colors.black,
           onChanged: (value) => controller.email.value = value,
           decoration: InputDecoration(
@@ -86,9 +91,7 @@ class LoginScreen extends GetView<LoginController> {
               horizontal: 16,
               vertical: 14,
             ),
-
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: const BorderSide(color: Colors.black12),
@@ -114,6 +117,8 @@ class LoginScreen extends GetView<LoginController> {
         const SizedBox(height: 8),
 
         TextFormField(
+          controller: controller.passwordController,
+          autofillHints: const [AutofillHints.password],
           onChanged: (value) => controller.password.value = value,
           obscureText: true,
           decoration: InputDecoration(
@@ -121,9 +126,8 @@ class LoginScreen extends GetView<LoginController> {
               horizontal: 16,
               vertical: 14,
             ),
-
+            
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: const BorderSide(color: Colors.black12),
