@@ -1,6 +1,6 @@
+import 'package:cico_project/core/style/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../controllers/login_controller.dart';
 
 class LoginScreen extends GetView<LoginController> {
@@ -9,45 +9,25 @@ class LoginScreen extends GetView<LoginController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: AutofillGroup(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    getHeaderForm(),
-
-                    const SizedBox(height: 24),
-
-                    getEmailField(),
-
-                    const SizedBox(height: 16),
-
-                    getPasswordField(),
-
-                    const SizedBox(height: 24),
-
-                    getLoginButton(),
-                  ],
-                ),
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildLogo(),
+                const SizedBox(height: 48),
+                _buildHeader(),
+                const SizedBox(height: 40),
+                _buildLoginForm(),
+                const SizedBox(height: 48),
+                _buildLoginButton(),
+                const SizedBox(height: 24),
+                _buildFooter(),
+              ],
             ),
           ),
         ),
@@ -55,51 +35,131 @@ class LoginScreen extends GetView<LoginController> {
     );
   }
 
-  Widget getHeaderForm() {
+  Widget _buildLogo() {
+    return Center(
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.lock_person_rounded,
+          color: Colors.white,
+          size: 32,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Welcome Back',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -1,
+            color: AppColors.textMain,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Silakan masuk untuk melakukan Check-In dan Check-Out kerja hari ini.',
+          style: TextStyle(fontSize: 15, color: AppColors.textSub, height: 1.5),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return AutofillGroup(
+      child: Column(
+        children: [
+          _buildTextField(
+            label: 'Email Address',
+            hint: 'Enter your work email',
+            controller: controller.emailController,
+            icon: Icons.alternate_email_rounded,
+            keyboardType: TextInputType.emailAddress,
+            autofillHints: [AutofillHints.email],
+            onChanged: (value) => controller.email.value = value,
+          ),
+          const SizedBox(height: 24),
+          _buildTextField(
+            label: 'Password',
+            hint: '••••••••',
+            controller: controller.passwordController,
+            icon: Icons.lock_outline_rounded,
+            obscureText: true,
+            autofillHints: [AutofillHints.password],
+            onChanged: (value) => controller.password.value = value,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    required IconData icon,
+    bool obscureText = false,
+    TextInputType? keyboardType,
+    Iterable<String>? autofillHints,
+    Function(String)? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Login',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textMain,
+          ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Enter your email below to login to your account',
-          style: TextStyle(fontSize: 14, color: Colors.grey),
-        ),
-      ],
-    );
-  }
-
-  Widget getEmailField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text('Email', style: TextStyle(fontWeight: FontWeight.w500)),
-
-        const SizedBox(height: 8),
-
+        const SizedBox(height: 10),
         TextFormField(
-          controller: controller.emailController,
-          autofillHints: const [AutofillHints.email, AutofillHints.username],
-          keyboardType: TextInputType.emailAddress,
-          cursorColor: Colors.black,
-          onChanged: (value) => controller.email.value = value,
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          autofillHints: autofillHints,
+          onChanged: onChanged,
+          cursorColor: AppColors.primary,
           decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.grey, fontSize: 15),
+            prefixIcon: Icon(
+              icon,
+              size: 20,
+              color: AppColors.primary.withOpacity(0.7),
+            ),
+            filled: true,
+            fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 14,
+              vertical: 18,
             ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(color: Colors.black12),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
-
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(color: Colors.black),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
           ),
         ),
@@ -107,71 +167,46 @@ class LoginScreen extends GetView<LoginController> {
     );
   }
 
-  Widget getPasswordField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text('Password', style: TextStyle(fontWeight: FontWeight.w500)),
-
-        const SizedBox(height: 8),
-
-        TextFormField(
-          controller: controller.passwordController,
-          autofillHints: const [AutofillHints.password],
-          onChanged: (value) => controller.password.value = value,
-          obscureText: true,
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(color: Colors.black12),
-            ),
-
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(
-                color: Colors.black,
-              ), // warna saat focus
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget getLoginButton() {
+  Widget _buildLoginButton() {
     return Obx(
       () => SizedBox(
-        height: 48,
+        width: double.infinity,
+        height: 58,
         child: ElevatedButton(
           onPressed: controller.isLoading.value ? null : controller.login,
-
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(16),
             ),
           ),
-
           child: controller.isLoading.value
-              ? const CircularProgressIndicator(
-                  color: Colors.white,
-                  backgroundColor: Colors.black,
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
                 )
               : const Text(
-                  'Login',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  'Sign In',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Center(
+      child: Text(
+        "v1.0.0",
+        style: TextStyle(
+          color: AppColors.textSub.withOpacity(0.5),
+          fontSize: 12,
         ),
       ),
     );

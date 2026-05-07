@@ -1,5 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
+import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:local_auth/local_auth.dart';
 
 class BiometricService {
@@ -11,7 +11,7 @@ class BiometricService {
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
       return canCheckBiometrics || isDeviceSupported;
     } catch (e) {
-      print('Error check biometric: $e');
+      // print('Error check biometric: $e');
       return false;
     }
   }
@@ -20,7 +20,7 @@ class BiometricService {
     try {
       return await _localAuth.getAvailableBiometrics();
     } catch (e) {
-      print('Error get biometrics: $e');
+      // print('Error get biometrics: $e');
       return [];
     }
   }
@@ -41,11 +41,14 @@ class BiometricService {
       );
       return didAuthenticate;
     } on PlatformException catch (e) {
-      print('Biometric error: ${e.code} - ${e.message}');
-      Get.snackbar('Gagal Verifikasi', 'Biometric gagal: ${e.message ?? 'Coba lagi'}');
+      // print('Biometric error: ${e.code} - ${e.message}');
+      AppNotifier.warning(
+        'Gagal Verifikasi',
+        'Biometric gagal: ${e.message ?? 'Coba lagi'}',
+      );
       return false;
     } catch (e) {
-      print('Unexpected error: $e');
+      // print('Unexpected error: $e');
       return false;
     }
   }

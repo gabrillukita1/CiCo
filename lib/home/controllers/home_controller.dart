@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:cico_project/auth/services/biometric_service.dart';
+import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:cico_project/home/views/snap_payment_page.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../auth/services/auth_service.dart';
 
@@ -55,19 +55,19 @@ class HomeController extends GetxController {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        Get.snackbar("Error", "Lokasi tidak aktif");
+        AppNotifier.warning("Lokasi", "Lokasi tidak aktif");
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          Get.snackbar("Error", "Izin lokasi ditolak");
+          AppNotifier.warning("Lokasi", "Izin lokasi ditolak");
           return;
         }
       }
       if (permission == LocationPermission.deniedForever) {
-        Get.snackbar("Error", "Izin lokasi ditolak permanen");
+        AppNotifier.error("Lokasi", "Izin lokasi ditolak permanen");
         return;
       }
       Position pos = await Geolocator.getCurrentPosition(
@@ -93,7 +93,7 @@ class HomeController extends GetxController {
         currentAddress.value = "Alamat tidak ditemukan";
       }
     } catch (e) {
-      Get.snackbar("Error", "Gagal ambil lokasi: $e");
+      AppNotifier.error("Error", "Gagal ambil lokasi: $e");
       currentAddress.value = "Gagal mendapatkan alamat";
     }
   }
@@ -115,7 +115,7 @@ class HomeController extends GetxController {
     endTime.value = _formatTime(rawEnd);
 
     if (checkinData == null) {
-      print('→ Tidak ada checkin_session di response');
+      // print('→ Tidak ada checkin_session di response');
       _resetToIdle();
       return;
     }
@@ -123,7 +123,7 @@ class HomeController extends GetxController {
         (checkinData['status'] as String?)?.toLowerCase() ?? 'none';
     checkInStatus.value = serverStatus;
 
-    print("checkInStatus: ${checkInStatus.value}");
+    // print("checkInStatus: ${checkInStatus.value}");
 
     switch (serverStatus) {
       // Active
@@ -152,12 +152,9 @@ class HomeController extends GetxController {
 
     // Notifikasi transisi ke aktif
     if (previousStatus != 'active' && checkInStatus.value == 'active') {
-      Get.snackbar(
+      AppNotifier.success(
         'Pembayaran Berhasil!',
         'Sesi aktif sampai ${checkinData['end_time'] ?? 'waktu tertentu'}',
-        backgroundColor: Colors.green[700],
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 5),
       );
     }
@@ -186,7 +183,7 @@ class HomeController extends GetxController {
     try {
       await loadCheckInStatus();
     } catch (e) {
-      print('Refresh status error: $e');
+      // print('Refresh status error: $e');
     }
   }
 
@@ -222,9 +219,7 @@ class HomeController extends GetxController {
         final result = await Get.to(
           () => SnapPaymentPage(snapToken: snapToken.value),
         );
-        if (result == 'success') {
-          await refreshSessionStatus();
-        }
+        await _handleSnapPaymentResult(result);
         return;
       }
       // CHECK-IN
@@ -240,10 +235,9 @@ class HomeController extends GetxController {
               msg.toLowerCase().contains('active')) {
             await refreshSessionStatus();
           } else {
-            Get.snackbar(
+            AppNotifier.error(
               'Gagal Check-In',
               msg,
-              backgroundColor: Colors.red[700],
             );
             return;
           }
@@ -255,54 +249,53 @@ class HomeController extends GetxController {
             await retryPay();
           }
           await Future.delayed(const Duration(milliseconds: 200));
-          await Get.to(() => SnapPaymentPage(snapToken: snapToken.value));
+          final result = await Get.to(
+            () => SnapPaymentPage(snapToken: snapToken.value),
+          );
+          await _handleSnapPaymentResult(result);
           return;
         }
         if (checkInStatus.value == 'active') {
-          Get.snackbar(
+          AppNotifier.success(
             'Check-In Berhasil',
             'Sesi langsung aktif',
-            backgroundColor: Colors.green[800],
           );
         }
         return;
       }
       // CHECK-OUT
-      final confirm = await showConfirmationDialog(
+      final confirm = await AppNotifier.confirmDialog(
         title: 'Konfirmasi Check-Out',
         message: 'Apakah kamu yakin ingin mengakhiri sesi check-in ini?',
         confirmText: 'Ya, Check-Out',
-        confirmColor: Colors.red,
+        type: AppNoticeType.error,
       );
       if (!confirm) return;
       final res = await _authService.checkout();
       if (!_isApiSuccess(res)) {
         final msg =
             res?['message'] ?? res?['error'] ?? 'Check-out ditolak server';
-        Get.snackbar('Gagal Check-Out', msg, backgroundColor: Colors.red[700]);
+        AppNotifier.error('Gagal Check-Out', msg);
         return;
       }
 
-      // Reset lokal, server akan disync ulang
+      // Reset lokal
       isCheckedIn.value = false;
       checkInStatus.value = 'expired';
       snapToken.value = '';
       statusText.value = 'Off';
 
-      Get.snackbar(
+      AppNotifier.info(
         'Check-Out Berhasil',
         res?['message'] ?? 'Sesi telah diakhiri',
-        backgroundColor: Colors.amber[700],
-        colorText: Colors.white,
       );
       await refreshWithDelay();
-    } catch (e, stack) {
-      print('EXCEPTION toggleCheckInOut: $e');
-      print(stack);
-      Get.snackbar(
+    } catch (e) {
+      // print('EXCEPTION toggleCheckInOut: $e');
+      // print(stack);
+      AppNotifier.error(
         'Error',
         'Gagal proses: $e',
-        backgroundColor: Colors.red[900],
       );
     } finally {
       isProcessing.value = false;
@@ -337,7 +330,7 @@ class HomeController extends GetxController {
       final res = await _authService.pay();
       await _handlePayResponse(res);
     } catch (e) {
-      Get.snackbar('Error', 'Gagal membuat pembayaran: $e');
+      AppNotifier.error('Error', 'Gagal membuat pembayaran: $e');
     } finally {
       isProcessing.value = false;
       // await refreshSessionStatus();
@@ -346,7 +339,7 @@ class HomeController extends GetxController {
 
   Future<void> _handlePayResponse(Map<String, dynamic>? res) async {
     if (res == null) {
-      Get.snackbar('Error', 'Tidak ada respon server');
+      AppNotifier.error('Error', 'Tidak ada respon server');
       return;
     }
 
@@ -357,27 +350,64 @@ class HomeController extends GetxController {
         snapToken.value = token;
         checkInStatus.value = 'waiting_for_payment';
         print('Token berhasil: $token');
-        Get.snackbar(
+        AppNotifier.success(
           'Sukses',
           'QRIS siap dibayar',
-          backgroundColor: Colors.green,
         );
       } else {
-        Get.snackbar('Peringatan', 'Token pembayaran kosong');
+        AppNotifier.warning('Peringatan', 'Token pembayaran kosong');
       }
     } else {
       final msg = res['message'] ?? 'Gagal membuat pembayaran';
-      print('Pay gagal: $msg');
-      Get.snackbar('Gagal', msg, backgroundColor: Colors.red[800]);
+      // print('Pay gagal: $msg');
+      AppNotifier.error('Gagal', msg);
+    }
+  }
+
+  Future<void> _handleSnapPaymentResult(dynamic result) async {
+    if (result == 'success') {
+      await refreshSessionStatus();
+      if (checkInStatus.value == 'active') {
+        AppNotifier.success(
+          'Pembayaran Berhasil',
+          'Pembayaran berhasil dan sesi check-in kamu sudah aktif.',
+        );
+      } else {
+        AppNotifier.success(
+          'Pembayaran Berhasil',
+          'Transaksi sukses. Status sesi sedang diperbarui otomatis.',
+        );
+      }
+      return;
+    }
+    if (result == 'pending') {
+      AppNotifier.warning(
+        'Pembayaran Pending',
+        'Transaksi masih diproses. Cek kembali beberapa saat lagi.',
+      );
+      return;
+    }
+    if (result == 'failed') {
+      AppNotifier.error(
+        'Pembayaran Gagal',
+        'Transaksi tidak berhasil. Silakan coba lagi.',
+      );
+      return;
+    }
+    if (result == 'closed') {
+      AppNotifier.warning(
+        'Pembayaran Dibatalkan',
+        'Kamu menutup halaman pembayaran sebelum selesai.',
+      );
     }
   }
 
   Future<void> logout() async {
-    final confirm = await showConfirmationDialog(
+    final confirm = await AppNotifier.confirmDialog(
       title: 'Konfirmasi Logout',
       message: 'Apakah kamu yakin ingin logout dari aplikasi?',
       confirmText: 'Ya, Logout',
-      confirmColor: Colors.red,
+      type: AppNoticeType.error,
     );
     if (!confirm) {
       return;
@@ -390,43 +420,6 @@ class HomeController extends GetxController {
     }
   }
 
-  Future<bool> showConfirmationDialog({
-    required String title,
-    required String message,
-    String confirmText = 'Ya',
-    Color confirmColor = Colors.red,
-  }) async {
-    final result = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(message),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: confirmColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () => Get.back(result: true),
-            child: Text(
-              confirmText,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-      barrierDismissible: false,
-    );
-
-    return result ?? false;
-  }
-
   Future<bool> requestBiometricForCheckIn() async {
     try {
       final bool authenticated = await biometricService.authenticate(
@@ -435,22 +428,17 @@ class HomeController extends GetxController {
       if (authenticated) {
         return true;
       } else {
-        Get.snackbar(
+        AppNotifier.warning(
           'Verifikasi Gagal',
           'Autentikasi biometrik dibutuhkan untuk check-in',
-          backgroundColor: Colors.orange[800],
-          colorText: Colors.white,
           duration: const Duration(seconds: 4),
-          snackPosition: SnackPosition.TOP,
         );
         return false;
       }
     } catch (e) {
-      Get.snackbar(
+      AppNotifier.error(
         'Error Biometrik',
         'Gagal memverifikasi identitas: ${e.toString().split('\n').first}',
-        backgroundColor: Colors.red[800],
-        colorText: Colors.white,
         duration: const Duration(seconds: 5),
       );
       // print('Biometric error: $e');
@@ -462,10 +450,9 @@ class HomeController extends GetxController {
     try {
       await loadCheckInStatus();
     } catch (e) {
-      Get.snackbar(
+      AppNotifier.error(
         'Error',
         'Gagal refresh status',
-        backgroundColor: Colors.red[700],
       );
     }
   }

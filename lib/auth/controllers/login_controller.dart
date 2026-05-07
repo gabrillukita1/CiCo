@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../core/widgets/app_notifier.dart';
 
 import '../services/auth_service.dart';
 
@@ -16,12 +17,7 @@ class LoginController extends GetxController {
 
   Future<void> login() async {
     if (email.value.isEmpty || password.value.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Email dan password harus diisi',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      AppNotifier.warning('Validasi', 'Email dan password harus diisi');
       return;
     }
 

@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
-import 'package:flutter/material.dart';
+import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'dart:io';
@@ -82,19 +82,17 @@ class AuthService {
         message = 'Masalah sertifikat SSL (sudah dibypass untuk debug)';
       }
 
-      Get.snackbar(
+      AppNotifier.error(
         'Login Gagal',
         message,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
         duration: const Duration(seconds: 6),
       );
 
-      print('DIO ERROR: $e');
+      // print('DIO ERROR: $e');
       return null;
     } catch (e) {
-      Get.snackbar('Error', 'Terjadi kesalahan: $e');
-      print('UNEXPECTED ERROR: $e');
+      AppNotifier.error('Error', 'Terjadi kesalahan: $e');
+      // print('UNEXPECTED ERROR: $e');
       return null;
     }
     return null;
@@ -110,8 +108,7 @@ class AuthService {
       final response = await _dio.get('/me');
       return response.statusCode == 200;
     } catch (e) {
-      // Kalau 401 atau error lain → anggap invalid
-      await logoutLocal(); // hapus token yang rusak
+      await logoutLocal();
       return false;
     }
   }
@@ -129,7 +126,7 @@ class AuthService {
         await logoutLocal();
         Get.offAllNamed('/login');
       }
-      print('GET USER ERROR: $e');
+      // print('GET USER ERROR: $e');
       return null;
     }
     return null;
@@ -140,8 +137,8 @@ class AuthService {
     _setAuthHeader();
     try {
       await _dio.post('/logout');
-    } on DioException catch (e) {
-      print('LOGOUT ERROR (ignored): $e');
+    } on DioException catch (_) {
+      // print('LOGOUT ERROR (ignored): $e');
     } finally {
       await logoutLocal();
     }
@@ -153,8 +150,7 @@ class AuthService {
     _setAuthHeader();
     try {
       final response = await _dio.post('/checkin');
-      return response
-          .data; // misal: {"success": true, "message": "Check-in berhasil"}
+      return response.data;
     } on DioException catch (e) {
       return {
         'success': false,
@@ -168,14 +164,12 @@ class AuthService {
     _setAuthHeader();
     try {
       final response = await _dio.post('/pay');
-      print('PAY API SUCCESS: ${response.data}');
+      // print('PAY API SUCCESS: ${response.data}');
       return response.data;
     } on DioException catch (e) {
-      print('PAY API ERROR - Status: ${e.response?.statusCode}');
-      print('PAY API ERROR - Full Response: ${e.response?.data}');
-      print(
-        'PAY API ERROR - Details: ${e.response?.data['error_messages'] ?? e.response?.data['message']}',
-      );
+      // print('PAY API ERROR - Status: ${e.response?.statusCode}');
+      // print('PAY API ERROR - Full Response: ${e.response?.data}');
+      // print('PAY API ERROR - Details: ${e.response?.data['error_messages'] ?? e.response?.data['message']}');
       return {
         'success': false,
         'message':
@@ -190,8 +184,7 @@ class AuthService {
     _setAuthHeader();
     try {
       final response = await _dio.get('/checkin-session');
-      return response
-          .data; // misal: {"is_checked_in": true, "payment_status": "paid"}
+      return response.data;
     } on DioException {
       return null;
     }
@@ -202,11 +195,11 @@ class AuthService {
     _setAuthHeader();
     try {
       final response = await _dio.post('/checkout');
-      print('CHECKOUT API SUCCESS: ${response.data}');
+      // print('CHECKOUT API SUCCESS: ${response.data}');
       return response.data;
     } on DioException catch (e) {
-      print('CHECKOUT API ERROR - Status: ${e.response?.statusCode}');
-      print('CHECKOUT API ERROR - Message: ${e.response?.data['message']}');
+      // print('CHECKOUT API ERROR - Status: ${e.response?.statusCode}');
+      // print('CHECKOUT API ERROR - Message: ${e.response?.data['message']}');
       return {
         'success': false,
         'message':
