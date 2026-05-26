@@ -219,6 +219,65 @@ class AuthService {
     return true;
   }
 
+  // GET PROFILE
+  Future<Map<String, dynamic>?> getProfile() async {
+    try {
+      final response = await _dio.get('/auth/me');
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // GET CHECKIN HISTORY
+  Future<Map<String, dynamic>?> getCheckinHistory({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/driver/checkin/history',
+        queryParameters: {'page': page, 'limit': limit},
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // GET PAYMENT HISTORY
+  Future<Map<String, dynamic>?> getPaymentHistory({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/driver/payments',
+        queryParameters: {'page': page, 'limit': limit},
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // GET DISPATCH HISTORY
+  Future<Map<String, dynamic>?> getDispatchHistory({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/driver/dispatch',
+        queryParameters: {'page': page, 'limit': limit},
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // CHECK-IN
   Future<Map<String, dynamic>?> checkIn() async {
     try {

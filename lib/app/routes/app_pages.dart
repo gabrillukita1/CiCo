@@ -1,5 +1,5 @@
 import 'package:cico_project/app/routes/app_routes.dart';
-import 'package:cico_project/home/views/home_screen.dart';
+import 'package:cico_project/home/views/main_screen.dart';
 import 'package:get/get.dart';
 import '../../auth/bindings/login_binding.dart';
 import '../../auth/views/login_screen.dart';
@@ -14,7 +14,7 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.home,
-      page: () => HomeScreen(),
+      page: () => const MainScreen(),
       binding: HomeBinding(),
     ),
   ];

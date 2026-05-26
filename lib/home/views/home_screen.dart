@@ -103,28 +103,7 @@ class HomeScreen extends GetView<HomeController> with WidgetsBindingObserver {
               ),
             );
           }),
-          const SizedBox(height: 16),
-          _buildLogoutButton(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildLogoutButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: OutlinedButton.icon(
-        onPressed: controller.logout,
-        icon: const Icon(Icons.logout_rounded, color: AppColors.textSub),
-        label: const Text(
-          'Logout dari Akun',
-          style: TextStyle(color: AppColors.textSub, fontWeight: FontWeight.w600),
-        ),
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
       ),
     );
   }
