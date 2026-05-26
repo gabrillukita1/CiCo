@@ -9,6 +9,7 @@ import 'dart:io';
 class AuthService {
   late final Dio _dio;
   final _storage = GetStorage();
+  bool _isRefreshing = false;
 
   AuthService() {
     _dio = Dio(
@@ -28,6 +29,60 @@ class AuthService {
               (X509Certificate cert, String host, int port) => true;
           return null;
         };
+
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        // Otomatis tambah Authorization header di setiap request
+        onRequest: (options, handler) {
+          final token = getToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+        // Tangkap 401, coba refresh token, retry request
+        onError: (DioException error, handler) async {
+          final path = error.requestOptions.path;
+          final isRetry = error.requestOptions.extra['isRetry'] == true;
+
+          // Skip: endpoint login/refresh atau sudah pernah retry
+          if (path == '/auth/login' ||
+              path == '/auth/refresh' ||
+              isRetry) {
+            return handler.next(error);
+          }
+
+          if (error.response?.statusCode == 401 && !_isRefreshing) {
+            _isRefreshing = true;
+            final refreshed = await refreshAccessToken();
+            _isRefreshing = false;
+
+            if (refreshed) {
+              // Retry request asal dengan token baru
+              error.requestOptions.headers['Authorization'] =
+                  'Bearer ${getToken()}';
+              error.requestOptions.extra['isRetry'] = true;
+              try {
+                final response = await _dio.fetch(error.requestOptions);
+                return handler.resolve(response);
+              } on DioException catch (e) {
+                return handler.next(e);
+              }
+            } else {
+              // Refresh gagal → logout
+              await logoutLocal();
+              try {
+                Get.offAllNamed('/login');
+              } catch (_) {
+                // App belum terinisialisasi (dipanggil saat startup)
+              }
+            }
+          }
+
+          return handler.next(error);
+        },
+      ),
+    );
   }
 
   // Simpan token
@@ -40,34 +95,35 @@ class AuthService {
     return _storage.read('access_token');
   }
 
+  // Ambil refresh token
+  String? getRefreshToken() {
+    return _storage.read('refresh_token');
+  }
+
   // Hapus token
   Future<void> logoutLocal() async {
     await _storage.remove('access_token');
-  }
-
-  // Set header Bearer
-  void _setAuthHeader() {
-    String? token = getToken();
-    if (token != null) {
-      _dio.options.headers['Authorization'] = 'Bearer $token';
-    }
+    await _storage.remove('refresh_token');
   }
 
   // LOGIN
   Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
       final response = await _dio.post(
-        '/login',
+        '/auth/login',
         data: {'email': email, 'password': password},
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data['data'];
-        final token = data['access_token'] as String?;
-        final user = data['user'] as Map<String, dynamic>;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final token = response.data['accessToken'] as String?;
+        final refreshToken = response.data['refreshToken'] as String?;
+        final user = response.data['user'] as Map<String, dynamic>;
 
         if (token != null) {
           await saveToken(token);
+        }
+        if (refreshToken != null) {
+          await _storage.write('refresh_token', refreshToken);
         }
         return {'user': user, 'token': token};
       }
@@ -78,7 +134,10 @@ class AuthService {
           e.type == DioExceptionType.receiveTimeout) {
         message = 'Koneksi timeout. Server lambat atau tidak merespon.';
       } else if (e.response != null) {
-        message = e.response?.data['message'] ?? 'Email atau password salah';
+        final data = e.response?.data;
+        if (data is Map) {
+          message = data['message'] ?? 'Email atau password salah';
+        }
       } else if (e.message?.contains('HandshakeException') == true) {
         message = 'Masalah sertifikat SSL (sudah dibypass untuk debug)';
       }
@@ -88,15 +147,37 @@ class AuthService {
         message,
         duration: const Duration(seconds: 6),
       );
-
-      // print('DIO ERROR: $e');
       return null;
     } catch (e) {
       AppNotifier.error('Error', 'Terjadi kesalahan: $e');
-      // print('UNEXPECTED ERROR: $e');
       return null;
     }
     return null;
+  }
+
+  // REFRESH TOKEN
+  Future<bool> refreshAccessToken() async {
+    final refreshToken = getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) return false;
+
+    try {
+      final response = await _dio.post(
+        '/auth/refresh',
+        options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final newAccessToken = response.data['accessToken'] as String?;
+        final newRefreshToken = response.data['refreshToken'] as String?;
+        if (newAccessToken != null) await saveToken(newAccessToken);
+        if (newRefreshToken != null) {
+          await _storage.write('refresh_token', newRefreshToken);
+        }
+        return true;
+      }
+    } catch (_) {
+      return false;
+    }
+    return false;
   }
 
   // VALIDATE TOKEN
@@ -104,42 +185,34 @@ class AuthService {
     final token = getToken();
     if (token == null || token.isEmpty) return false;
 
-    _setAuthHeader();
     try {
-      final response = await _dio.get('/me');
+      final response = await _dio.get('/auth/me');
       return response.statusCode == 200;
-    } catch (e) {
-      await logoutLocal();
+    } catch (_) {
+      // Interceptor sudah handle refresh & logout otomatis
       return false;
     }
   }
 
   // GET USER
   Future<Map<String, dynamic>?> getUser() async {
-    _setAuthHeader();
     try {
-      final response = await _dio.get('/me');
+      final response = await _dio.get('/auth/me');
       if (response.statusCode == 200) {
-        return response.data['user'] as Map<String, dynamic>;
+        return response.data as Map<String, dynamic>;
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        await logoutLocal();
-        Get.offAllNamed('/login');
-      }
-      // print('GET USER ERROR: $e');
-      return null;
+    } catch (_) {
+      // Interceptor sudah handle refresh & redirect otomatis
     }
     return null;
   }
 
   // LOGOUT
   Future<bool> performLogout() async {
-    _setAuthHeader();
     try {
-      await _dio.post('/logout');
+      await _dio.post('/auth/logout');
     } on DioException catch (_) {
-      // print('LOGOUT ERROR (ignored): $e');
+      // Logout tetap dilanjutkan meski API gagal
     } finally {
       await logoutLocal();
     }
@@ -148,7 +221,6 @@ class AuthService {
 
   // CHECK-IN
   Future<Map<String, dynamic>?> checkIn() async {
-    _setAuthHeader();
     try {
       final response = await _dio.post('/checkin');
       return response.data;
@@ -162,7 +234,6 @@ class AuthService {
 
   // PAYMENT
   Future<Map<String, dynamic>?> pay() async {
-    _setAuthHeader();
     try {
       final response = await _dio.post('/pay');
       // print('PAY API SUCCESS: ${response.data}');
@@ -182,7 +253,6 @@ class AuthService {
 
   // GET CHECK-IN SESSION
   Future<Map<String, dynamic>?> getCheckInSession() async {
-    _setAuthHeader();
     try {
       final response = await _dio.get('/checkin-session');
       return response.data;
@@ -193,7 +263,6 @@ class AuthService {
 
   // CHECKOUT
   Future<Map<String, dynamic>?> checkout() async {
-    _setAuthHeader();
     try {
       final response = await _dio.post('/checkout');
       // print('CHECKOUT API SUCCESS: ${response.data}');
