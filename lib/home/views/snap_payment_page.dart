@@ -1,3 +1,4 @@
+import 'package:cico_project/core/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:get/get.dart';
@@ -66,8 +67,8 @@ class _SnapPaymentPageState extends State<SnapPaymentPage> {
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://app.sandbox.midtrans.com/snap/snap.js"
-          data-client-key="Mid-client-mEFo-UlRTyeILwaG"></script>
+  <script src="${AppConfig.midtransSnapUrl}"
+          data-client-key="${AppConfig.midtransClientKey}"></script>
 </head>
 <body>
 </body>

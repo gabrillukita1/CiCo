@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:cico_project/core/config/app_config.dart';
 import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -12,7 +13,7 @@ class AuthService {
   AuthService() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://cico-api.my.id/api',
+        baseUrl: AppConfig.baseUrl,
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         contentType: 'application/json',
