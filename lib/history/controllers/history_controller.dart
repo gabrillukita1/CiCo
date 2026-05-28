@@ -4,55 +4,53 @@ import 'package:get/get.dart';
 class HistoryController extends GetxController {
   final _authService = AuthService();
 
-  final checkinList = <Map<String, dynamic>>[].obs;
-  final paymentList = <Map<String, dynamic>>[].obs;
-  final dispatchList = <Map<String, dynamic>>[].obs;
+  final sessionList = <Map<String, dynamic>>[].obs;
+  final isLoading = true.obs;
+  final isLoadingMore = false.obs;
+  final hasMore = true.obs;
 
-  final isLoadingCheckin = true.obs;
-  final isLoadingPayment = true.obs;
-  final isLoadingDispatch = true.obs;
+  int _currentPage = 1;
+  static const int _limit = 10;
 
   @override
   void onInit() {
     super.onInit();
-    loadAll();
+    loadHistory();
   }
 
-  Future<void> loadAll() async {
-    await Future.wait([
-      loadCheckinHistory(),
-      loadPaymentHistory(),
-      loadDispatchHistory(),
-    ]);
-  }
+  Future<void> loadHistory() async {
+    isLoading.value = true;
+    _currentPage = 1;
+    hasMore.value = true;
 
-  Future<void> loadCheckinHistory() async {
-    isLoadingCheckin.value = true;
-    final res = await _authService.getCheckinHistory();
+    final res = await _authService.getCheckinHistory(page: 1, limit: _limit);
     if (res != null) {
       final data = res['data'] as List? ?? [];
-      checkinList.value = data.cast<Map<String, dynamic>>();
+      sessionList.value = data.cast<Map<String, dynamic>>();
+      final totalPages = res['totalPages'] as int? ?? 1;
+      hasMore.value = _currentPage < totalPages;
     }
-    isLoadingCheckin.value = false;
+    isLoading.value = false;
   }
 
-  Future<void> loadPaymentHistory() async {
-    isLoadingPayment.value = true;
-    final res = await _authService.getPaymentHistory();
-    if (res != null) {
-      final data = res['data'] as List? ?? [];
-      paymentList.value = data.cast<Map<String, dynamic>>();
-    }
-    isLoadingPayment.value = false;
-  }
+  Future<void> loadMore() async {
+    if (isLoadingMore.value || !hasMore.value) return;
 
-  Future<void> loadDispatchHistory() async {
-    isLoadingDispatch.value = true;
-    final res = await _authService.getDispatchHistory();
+    isLoadingMore.value = true;
+    _currentPage++;
+
+    final res = await _authService.getCheckinHistory(
+      page: _currentPage,
+      limit: _limit,
+    );
     if (res != null) {
       final data = res['data'] as List? ?? [];
-      dispatchList.value = data.cast<Map<String, dynamic>>();
+      sessionList.addAll(data.cast<Map<String, dynamic>>());
+      final totalPages = res['totalPages'] as int? ?? 1;
+      hasMore.value = _currentPage < totalPages;
+    } else {
+      _currentPage--;
     }
-    isLoadingDispatch.value = false;
+    isLoadingMore.value = false;
   }
 }

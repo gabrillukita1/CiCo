@@ -9,289 +9,324 @@ class HistoryScreen extends GetView<HistoryController> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: const Text(
-            'History',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          backgroundColor: Colors.white,
-          foregroundColor: AppColors.textMain,
-          elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: controller.loadAll,
-            ),
-          ],
-          bottom: const TabBar(
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.textSub,
-            indicatorColor: AppColors.primary,
-            labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            tabs: [
-              Tab(text: 'Check-in'),
-              Tab(text: 'Pembayaran'),
-              Tab(text: 'Dispatch'),
-            ],
-          ),
+    final scrollController = ScrollController();
+
+    scrollController.addListener(() {
+      if (scrollController.position.pixels >=
+          scrollController.position.maxScrollExtent - 200) {
+        controller.loadMore();
+      }
+    });
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'History',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        body: TabBarView(
-          children: [
-            _buildCheckinTab(),
-            _buildPaymentTab(),
-            _buildDispatchTab(),
-          ],
-        ),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textMain,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: controller.loadHistory,
+          ),
+        ],
       ),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
+        if (controller.sessionList.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.inbox_rounded,
+                  size: 56,
+                  color: AppColors.textSub.withOpacity(0.4),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Belum ada riwayat sesi',
+                  style: TextStyle(color: AppColors.textSub, fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: controller.loadHistory,
+          child: ListView.builder(
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            itemCount:
+                controller.sessionList.length +
+                (controller.hasMore.value ? 1 : 0),
+            itemBuilder: (_, i) {
+              if (i == controller.sessionList.length) {
+                return Obx(
+                  () =>
+                      controller.isLoadingMore.value
+                          ? const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          )
+                          : const SizedBox.shrink(),
+                );
+              }
+              return _sessionCard(controller.sessionList[i]);
+            },
+          ),
+        );
+      }),
     );
   }
 
-  // ── CHECK-IN TAB ──────────────────────────────────────────────────────────
-
-  Widget _buildCheckinTab() {
-    return Obx(() {
-      if (controller.isLoadingCheckin.value) return _loading();
-      if (controller.checkinList.isEmpty) return _empty('Belum ada riwayat check-in');
-      return RefreshIndicator(
-        color: AppColors.primary,
-        onRefresh: controller.loadCheckinHistory,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: controller.checkinList.length,
-          itemBuilder: (_, i) => _checkinCard(controller.checkinList[i]),
-        ),
-      );
-    });
-  }
-
-  Widget _checkinCard(Map<String, dynamic> item) {
-    final checkinAt = _formatDateTime(item['checkinAt']);
-    final checkoutAt = _formatDateTime(item['checkoutAt']);
-    final isPaid = item['isPaid'] == true;
-    final payment = item['payment'] as Map<String, dynamic>?;
+  Widget _sessionCard(Map<String, dynamic> session) {
+    final status = session['status'] as String? ?? 'expired';
+    final isPaid = session['isPaid'] == true;
+    final payment = session['payment'] as Map<String, dynamic>?;
+    final dispatches = (session['dispatches'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _formatDate(item['checkinAt']),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: AppColors.textMain,
-                ),
-              ),
-              _badge(
-                isPaid ? 'Lunas' : 'Belum Bayar',
-                isPaid ? AppColors.active : AppColors.waiting,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 12),
-          _timeRow(Icons.login_rounded, 'Check-in', checkinAt ?? '-'),
-          const SizedBox(height: 6),
-          _timeRow(
-            Icons.logout_rounded,
-            'Check-out',
-            checkoutAt ?? 'Sesi masih aktif',
-          ),
-          if (payment != null) ...[
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: AppColors.border),
-            const SizedBox(height: 10),
-            Row(
+          // ── Header ──────────────────────────────────────
+          _cardHeader(session, status, isPaid),
+
+          // ── Check-in / Check-out times ──────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
               children: [
-                const Icon(Icons.payment_rounded, size: 14, color: AppColors.textSub),
-                const SizedBox(width: 6),
-                Text(
-                  _formatCurrency(payment['amount']),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: AppColors.textMain,
-                  ),
+                _timeRow(
+                  Icons.login_rounded,
+                  'Check-in',
+                  _formatDateTime(session['checkinAt']) ?? '-',
                 ),
-                const SizedBox(width: 8),
-                if (payment['paymentType'] != null)
-                  Text(
-                    (payment['paymentType'] as String).toUpperCase(),
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSub),
-                  ),
+                const SizedBox(height: 6),
+                _timeRow(
+                  Icons.logout_rounded,
+                  'Check-out',
+                  _formatDateTime(session['checkoutAt']) ?? 'Sesi masih aktif',
+                ),
               ],
             ),
+          ),
+
+          // ── Payment ─────────────────────────────────────
+          if (payment != null) ...[
+            _divider(),
+            _paymentSection(payment),
           ],
+
+          // ── Dispatches ──────────────────────────────────
+          if (dispatches.isNotEmpty) ...[
+            _divider(),
+            _dispatchSection(dispatches),
+          ],
+
+          const SizedBox(height: 14),
         ],
       ),
     );
   }
 
-  // ── PAYMENT TAB ───────────────────────────────────────────────────────────
-
-  Widget _buildPaymentTab() {
-    return Obx(() {
-      if (controller.isLoadingPayment.value) return _loading();
-      if (controller.paymentList.isEmpty) return _empty('Belum ada riwayat pembayaran');
-      return RefreshIndicator(
-        color: AppColors.primary,
-        onRefresh: controller.loadPaymentHistory,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: controller.paymentList.length,
-          itemBuilder: (_, i) => _paymentCard(controller.paymentList[i]),
-        ),
-      );
-    });
-  }
-
-  Widget _paymentCard(Map<String, dynamic> item) {
-    final status = item['status'] as String? ?? 'pending';
-    final amount = item['amount'];
-    final paymentType = item['paymentType'] as String?;
-    final paidAt = _formatDateTime(item['paidAt']);
-    final createdAt = _formatDateTime(item['createdAt']);
-    final orderId = item['midtransOrderId'] as String? ?? '-';
+  Widget _cardHeader(
+    Map<String, dynamic> session,
+    String status,
+    bool isPaid,
+  ) {
+    Color statusColor;
+    String statusLabel;
+    switch (status) {
+      case 'active':
+        statusColor = AppColors.active;
+        statusLabel = 'Aktif';
+        break;
+      case 'waiting_for_payment':
+        statusColor = AppColors.waiting;
+        statusLabel = 'Menunggu Bayar';
+        break;
+      default:
+        statusColor = AppColors.textSub;
+        statusLabel = 'Selesai';
+    }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.05),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(18),
+          topRight: Radius.circular(18),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  orderId,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: AppColors.textMain,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              _paymentStatusBadge(status),
-            ],
+          Text(
+            _formatDate(session['checkinAt']),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: AppColors.textMain,
+            ),
           ),
-          const SizedBox(height: 10),
-          const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 10),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                _formatCurrency(amount),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textMain,
-                ),
-              ),
-              if (paymentType != null)
+              if (!isPaid && status != 'active')
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
                   ),
-                  child: Text(
-                    paymentType.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                  decoration: BoxDecoration(
+                    color: AppColors.inactive.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: const Text(
+                    'Belum Bayar',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.inactive,
                     ),
                   ),
                 ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          if (paidAt != null)
-            _timeRow(Icons.check_circle_outline_rounded, 'Dibayar', paidAt)
-          else
-            _timeRow(Icons.access_time_rounded, 'Dibuat', createdAt ?? '-'),
         ],
       ),
     );
   }
 
-  // ── DISPATCH TAB ──────────────────────────────────────────────────────────
+  Widget _paymentSection(Map<String, dynamic> payment) {
+    final payStatus = payment['status'] as String? ?? 'pending';
+    final amount = payment['amount'];
+    final paymentType = payment['paymentType'] as String?;
 
-  Widget _buildDispatchTab() {
-    return Obx(() {
-      if (controller.isLoadingDispatch.value) return _loading();
-      if (controller.dispatchList.isEmpty) return _empty('Belum ada riwayat dispatch');
-      return RefreshIndicator(
-        color: AppColors.primary,
-        onRefresh: controller.loadDispatchHistory,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: controller.dispatchList.length,
-          itemBuilder: (_, i) => _dispatchCard(controller.dispatchList[i]),
-        ),
-      );
-    });
-  }
+    Color payColor;
+    switch (payStatus) {
+      case 'success':
+        payColor = AppColors.active;
+        break;
+      case 'pending':
+        payColor = AppColors.waiting;
+        break;
+      default:
+        payColor = AppColors.inactive;
+    }
 
-  Widget _dispatchCard(Map<String, dynamic> item) {
-    final dispatchedAt = _formatDateTime(item['dispatchedAt']);
-    final dispatchedBy = item['dispatchedBy'] as Map<String, dynamic>?;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: _cardDecoration(),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
-              Icons.local_taxi_rounded,
+              Icons.receipt_long_rounded,
+              size: 16,
               color: AppColors.primary,
-              size: 24,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  dispatchedAt ?? '-',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: AppColors.textMain,
-                  ),
+                const Text(
+                  'Pembayaran',
+                  style: TextStyle(fontSize: 11, color: AppColors.textSub),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  dispatchedBy != null
-                      ? 'Oleh: ${dispatchedBy['name'] ?? 'Admin'}'
-                      : 'Admin tidak diketahui',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSub),
+                Row(
+                  children: [
+                    Text(
+                      _formatCurrency(amount),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                    if (paymentType != null) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        paymentType.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSub,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: payColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Text(
+              _paymentStatusLabel(payStatus),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: payColor,
+              ),
             ),
           ),
         ],
@@ -299,20 +334,73 @@ class HistoryScreen extends GetView<HistoryController> {
     );
   }
 
-  // ── HELPERS ───────────────────────────────────────────────────────────────
-
-  Widget _loading() {
-    return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-  }
-
-  Widget _empty(String message) {
-    return Center(
+  Widget _dispatchSection(List<Map<String, dynamic>> dispatches) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.inbox_rounded, size: 56, color: AppColors.textSub.withOpacity(0.4)),
-          const SizedBox(height: 12),
-          Text(message, style: const TextStyle(color: AppColors.textSub, fontSize: 14)),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.waiting.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.local_taxi_rounded,
+                  size: 16,
+                  color: AppColors.waiting,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Dispatch (${dispatches.length})',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: AppColors.textMain,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...dispatches.map(
+            (d) => Padding(
+              padding: const EdgeInsets.only(left: 38, bottom: 4),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.circle,
+                    size: 5,
+                    color: AppColors.textSub,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatDateTime(d['dispatchedAt']) ?? '-',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                  if (d['dispatchedBy'] != null) ...[
+                    const Text(
+                      '  •  ',
+                      style: TextStyle(color: AppColors.textSub),
+                    ),
+                    Text(
+                      d['dispatchedBy']['name'] ?? 'Admin',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSub,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -327,76 +415,26 @@ class HistoryScreen extends GetView<HistoryController> {
           '$label: ',
           style: const TextStyle(fontSize: 12, color: AppColors.textSub),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textMain,
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMain,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _badge(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(100),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 11),
-      ),
-    );
-  }
+  Widget _divider() => const Padding(
+    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    child: Divider(height: 1, color: AppColors.border),
+  );
 
-  Widget _paymentStatusBadge(String status) {
-    Color color;
-    String label;
-    switch (status) {
-      case 'success':
-        color = AppColors.active;
-        label = 'Sukses';
-        break;
-      case 'pending':
-        color = AppColors.waiting;
-        label = 'Pending';
-        break;
-      case 'failed':
-        color = AppColors.inactive;
-        label = 'Gagal';
-        break;
-      case 'expired':
-        color = AppColors.textSub;
-        label = 'Expired';
-        break;
-      case 'cancelled':
-        color = AppColors.textSub;
-        label = 'Dibatalkan';
-        break;
-      default:
-        color = AppColors.textSub;
-        label = status;
-    }
-    return _badge(label, color);
-  }
-
-  BoxDecoration _cardDecoration() {
-    return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.04),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    );
-  }
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   String? _formatDateTime(dynamic value) {
     if (value == null) return null;
@@ -429,6 +467,23 @@ class HistoryScreen extends GetView<HistoryController> {
       ).format(val);
     } catch (_) {
       return 'Rp $amount';
+    }
+  }
+
+  String _paymentStatusLabel(String status) {
+    switch (status) {
+      case 'success':
+        return 'Lunas';
+      case 'pending':
+        return 'Pending';
+      case 'failed':
+        return 'Gagal';
+      case 'expired':
+        return 'Expired';
+      case 'cancelled':
+        return 'Dibatalkan';
+      default:
+        return status;
     }
   }
 }
