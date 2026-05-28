@@ -1,5 +1,8 @@
 import 'package:cico_project/auth/services/auth_service.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+enum DateFilter { all, today, thisWeek, thisMonth, custom }
 
 class HistoryController extends GetxController {
   final _authService = AuthService();
@@ -8,6 +11,10 @@ class HistoryController extends GetxController {
   final isLoading = true.obs;
   final isLoadingMore = false.obs;
   final hasMore = true.obs;
+
+  final selectedFilter = DateFilter.all.obs;
+  final customStart = Rxn<DateTime>();
+  final customEnd = Rxn<DateTime>();
 
   int _currentPage = 1;
   static const int _limit = 10;
@@ -18,12 +25,49 @@ class HistoryController extends GetxController {
     loadHistory();
   }
 
+  DateTimeRange? get _activeDateRange {
+    final now = DateTime.now();
+    switch (selectedFilter.value) {
+      case DateFilter.today:
+        final start = DateTime(now.year, now.month, now.day);
+        final end = start.add(const Duration(days: 1));
+        return DateTimeRange(start: start, end: end);
+      case DateFilter.thisWeek:
+        final start = now.subtract(Duration(days: now.weekday - 1));
+        final weekStart = DateTime(start.year, start.month, start.day);
+        return DateTimeRange(
+          start: weekStart,
+          end: weekStart.add(const Duration(days: 7)),
+        );
+      case DateFilter.thisMonth:
+        final start = DateTime(now.year, now.month, 1);
+        final end = DateTime(now.year, now.month + 1, 1);
+        return DateTimeRange(start: start, end: end);
+      case DateFilter.custom:
+        if (customStart.value != null && customEnd.value != null) {
+          return DateTimeRange(
+            start: customStart.value!,
+            end: customEnd.value!.add(const Duration(days: 1)),
+          );
+        }
+        return null;
+      default:
+        return null;
+    }
+  }
+
   Future<void> loadHistory() async {
     isLoading.value = true;
     _currentPage = 1;
     hasMore.value = true;
 
-    final res = await _authService.getCheckinHistory(page: 1, limit: _limit);
+    final range = _activeDateRange;
+    final res = await _authService.getCheckinHistory(
+      page: 1,
+      limit: _limit,
+      startDate: range?.start,
+      endDate: range?.end,
+    );
     if (res != null) {
       final data = res['data'] as List? ?? [];
       sessionList.value = data.cast<Map<String, dynamic>>();
@@ -39,9 +83,12 @@ class HistoryController extends GetxController {
     isLoadingMore.value = true;
     _currentPage++;
 
+    final range = _activeDateRange;
     final res = await _authService.getCheckinHistory(
       page: _currentPage,
       limit: _limit,
+      startDate: range?.start,
+      endDate: range?.end,
     );
     if (res != null) {
       final data = res['data'] as List? ?? [];
@@ -52,5 +99,17 @@ class HistoryController extends GetxController {
       _currentPage--;
     }
     isLoadingMore.value = false;
+  }
+
+  Future<void> setFilter(DateFilter filter, {DateTimeRange? range}) async {
+    selectedFilter.value = filter;
+    if (filter == DateFilter.custom && range != null) {
+      customStart.value = range.start;
+      customEnd.value = range.end;
+    } else if (filter != DateFilter.custom) {
+      customStart.value = null;
+      customEnd.value = null;
+    }
+    await loadHistory();
   }
 }

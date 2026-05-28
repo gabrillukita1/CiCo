@@ -234,11 +234,20 @@ class AuthService {
   Future<Map<String, dynamic>?> getCheckinHistory({
     int page = 1,
     int limit = 20,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
+      final params = <String, dynamic>{'page': page, 'limit': limit};
+      if (startDate != null) {
+        params['from'] = startDate.toUtc().toIso8601String();
+      }
+      if (endDate != null) {
+        params['to'] = endDate.toUtc().toIso8601String();
+      }
       final response = await _dio.get(
         '/driver/checkin/history',
-        queryParameters: {'page': page, 'limit': limit},
+        queryParameters: params,
       );
       return response.data as Map<String, dynamic>;
     } catch (_) {
