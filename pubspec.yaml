@@ -12,9 +12,6 @@ dependencies:
     sdk: flutter
   get: ^4.6.6
 
-  # Package QR code
-  qr_flutter: ^4.0.0
-
   # biometric authentication
   local_auth: ^2.3.0
 

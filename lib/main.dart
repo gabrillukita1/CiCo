@@ -1,4 +1,5 @@
 import 'package:cico_project/auth/services/auth_service.dart';
+import 'package:cico_project/core/style/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -27,7 +28,10 @@ class CicoApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'CICO Project',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.amber, useMaterial3: true),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+      ),
       initialRoute: initialRoute,
       getPages: AppPages.routes,
     );

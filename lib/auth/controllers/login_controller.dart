@@ -1,3 +1,4 @@
+import 'package:cico_project/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -38,7 +39,7 @@ class LoginController extends GetxController {
 
     if (result != null) {
       TextInput.finishAutofillContext();
-      Get.offAllNamed('/home');
+      Get.offAllNamed(AppRoutes.home);
     }
   }
 

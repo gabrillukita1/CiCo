@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:cico_project/auth/services/biometric_service.dart';
+import 'package:cico_project/core/utils/auth_helper.dart';
 import 'package:cico_project/core/utils/date_utils.dart' as tz;
 import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:cico_project/home/views/snap_payment_page.dart';
@@ -183,8 +184,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   Future<void> refreshSessionStatus() async {
     try {
       await loadCheckInStatus();
-    } catch (e) {
-      // print('Refresh status error: $e');
+    } catch (_) {
+      // Refresh background — tidak notifikasi agar tidak mengganggu UX
+      // Error kritis (token expired, dll) sudah ditangani oleh interceptor Dio
     }
   }
 
@@ -238,28 +240,36 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  /// Ambil posisi saat ini. Return null dan tampilkan error jika gagal.
+  Future<Position?> _ensureLocation({
+    LocationAccuracy accuracy = LocationAccuracy.high,
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    if (currentPosition.value != null) return currentPosition.value;
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: accuracy,
+      ).timeout(timeout);
+      currentPosition.value = pos;
+      return pos;
+    } catch (_) {
+      AppNotifier.error(
+        'Lokasi Tidak Tersedia',
+        'Aktifkan GPS dan pastikan izin lokasi sudah diberikan, lalu coba lagi.',
+        duration: const Duration(seconds: 5),
+      );
+      return null;
+    }
+  }
+
   Future<void> _doCheckIn() async {
     // 1. Biometric wajib
     final bool authenticated = await requestBiometricForCheckIn();
     if (!authenticated) return;
 
     // 2. Lokasi wajib
-    Position? pos = currentPosition.value;
-    if (pos == null) {
-      try {
-        pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        ).timeout(const Duration(seconds: 10));
-        currentPosition.value = pos;
-      } catch (_) {
-        AppNotifier.error(
-          'Lokasi Tidak Tersedia',
-          'Aktifkan GPS dan pastikan izin lokasi sudah diberikan, lalu coba lagi.',
-          duration: const Duration(seconds: 5),
-        );
-        return;
-      }
-    }
+    final pos = await _ensureLocation();
+    if (pos == null) return;
 
     // 3. Request check-in
     final res = await _authService.checkIn(
@@ -293,18 +303,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   // Retry payment: panggil /driver/checkin lagi untuk dapat redirect_url baru
   Future<void> _doRetryPayment() async {
-    Position? pos = currentPosition.value;
-    if (pos == null) {
-      try {
-        pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.low,
-        ).timeout(const Duration(seconds: 5));
-        currentPosition.value = pos;
-      } catch (_) {
-        AppNotifier.error('Lokasi Tidak Tersedia', 'Aktifkan GPS lalu coba lagi.');
-        return;
-      }
-    }
+    final pos = await _ensureLocation(
+      accuracy: LocationAccuracy.low,
+      timeout: const Duration(seconds: 5),
+    );
+    if (pos == null) return;
 
     final res = await _authService.checkIn(
       latitude: pos.latitude,
@@ -355,23 +358,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _doReturnToStandby() async {
-    // Ambil lokasi
-    Position? pos = currentPosition.value;
-    if (pos == null) {
-      try {
-        pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-        ).timeout(const Duration(seconds: 10));
-        currentPosition.value = pos;
-      } catch (_) {
-        AppNotifier.error(
-          'Lokasi Tidak Tersedia',
-          'Aktifkan GPS dan pastikan izin lokasi sudah diberikan, lalu coba lagi.',
-          duration: const Duration(seconds: 5),
-        );
-        return;
-      }
-    }
+    final pos = await _ensureLocation();
+    if (pos == null) return;
 
     final res = await _authService.returnToStandby(
       latitude: pos.latitude,
@@ -455,7 +443,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> logout() => AppNotifier.confirmAndLogout();
+  Future<void> logout() => AuthHelper.confirmAndLogout();
 
   Future<bool> requestBiometricForCheckIn() async {
     try {

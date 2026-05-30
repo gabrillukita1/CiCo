@@ -1,4 +1,5 @@
 import 'package:cico_project/auth/services/auth_service.dart';
+import 'package:cico_project/core/utils/auth_helper.dart';
 import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:get/get.dart';
 
@@ -29,5 +30,5 @@ class ProfileController extends GetxController {
     }
   }
 
-  Future<void> logout() => AppNotifier.confirmAndLogout();
+  Future<void> logout() => AuthHelper.confirmAndLogout();
 }

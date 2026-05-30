@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:cico_project/app/routes/app_routes.dart';
 import 'package:cico_project/core/config/app_config.dart';
 import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:flutter/foundation.dart';
@@ -75,7 +76,7 @@ class AuthService {
               // Refresh gagal → logout
               await logoutLocal();
               try {
-                Get.offAllNamed('/login');
+                Get.offAllNamed(AppRoutes.login);
               } catch (_) {
                 // App belum terinisialisasi (dipanggil saat startup)
               }
@@ -197,19 +198,6 @@ class AuthService {
     }
   }
 
-  // GET USER
-  Future<Map<String, dynamic>?> getUser() async {
-    try {
-      final response = await _dio.get('/auth/me');
-      if (response.statusCode == 200) {
-        return response.data as Map<String, dynamic>;
-      }
-    } catch (_) {
-      // Interceptor sudah handle refresh & redirect otomatis
-    }
-    return null;
-  }
-
   // LOGOUT (API + clear local storage)
   Future<bool> performLogout() async {
     try {
@@ -259,37 +247,7 @@ class AuthService {
     }
   }
 
-  // GET PAYMENT HISTORY
-  Future<Map<String, dynamic>?> getPaymentHistory({
-    int page = 1,
-    int limit = 20,
-  }) async {
-    try {
-      final response = await _dio.get(
-        '/driver/payments',
-        queryParameters: {'page': page, 'limit': limit},
-      );
-      return response.data as Map<String, dynamic>;
-    } catch (_) {
-      return null;
-    }
-  }
 
-  // GET DISPATCH HISTORY
-  Future<Map<String, dynamic>?> getDispatchHistory({
-    int page = 1,
-    int limit = 20,
-  }) async {
-    try {
-      final response = await _dio.get(
-        '/driver/dispatch',
-        queryParameters: {'page': page, 'limit': limit},
-      );
-      return response.data as Map<String, dynamic>;
-    } catch (_) {
-      return null;
-    }
-  }
 
   // CHECK-IN
   Future<Map<String, dynamic>?> checkIn({
