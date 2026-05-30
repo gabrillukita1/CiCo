@@ -209,9 +209,9 @@ class HomeScreen extends GetView<HomeController> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildTimeDetail("Start At", controller.startTime.value),
+                _buildTimeDetail("Mulai", controller.startTime.value),
                 const VerticalDivider(color: AppColors.border, thickness: 1),
-                _buildTimeDetail("Expire At", controller.endTime.value),
+                _buildTimeDetail("Berakhir", controller.endTime.value),
               ],
             ),
           ),
@@ -345,7 +345,7 @@ class HomeScreen extends GetView<HomeController> {
               Icon(Icons.timer_outlined, size: 15, color: color),
               const SizedBox(width: 6),
               Text(
-                'Remaining Time',
+                'Sisa Waktu',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -368,7 +368,7 @@ class HomeScreen extends GetView<HomeController> {
           ),
           const SizedBox(height: 4),
           Text(
-            h > 0 ? 'hours  :  minutes' : 'minutes',
+            h > 0 ? 'jam  :  menit' : 'menit',
             style: TextStyle(
               fontSize: 10,
               color: color.withValues(alpha: 0.6),

@@ -11,8 +11,6 @@ class LoginController extends GetxController {
   final AuthService _authService = Get.find<AuthService>();
 
   var isLoading = false.obs;
-  var email = ''.obs;
-  var password = ''.obs;
   var obscurePassword = true.obs;
   var appVersion = ''.obs;
 
@@ -42,17 +40,20 @@ class LoginController extends GetxController {
   }
 
   Future<void> login() async {
-    if (email.value.isEmpty || password.value.isEmpty) {
+    final emailText = emailController.text.trim();
+    final passwordText = passwordController.text;
+
+    if (emailText.isEmpty || passwordText.isEmpty) {
       AppNotifier.warning('Validasi', 'Email dan password harus diisi');
       return;
     }
-    if (!GetUtils.isEmail(email.value)) {
+    if (!GetUtils.isEmail(emailText)) {
       AppNotifier.warning('Validasi', 'Format email tidak valid');
       return;
     }
 
     isLoading.value = true;
-    final result = await _authService.login(email.value, password.value);
+    final result = await _authService.login(emailText, passwordText);
     isLoading.value = false;
 
     if (result != null) {
@@ -60,5 +61,4 @@ class LoginController extends GetxController {
       Get.offAllNamed(AppRoutes.home);
     }
   }
-
 }

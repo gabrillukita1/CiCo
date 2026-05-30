@@ -60,15 +60,15 @@ class StatusHelper {
         return const DriverStatusInfo(
           color: AppColors.active,
           icon: Icons.radio_button_checked_rounded,
-          label: 'Active',
-          displayText: 'ACTIVE',
+          label: 'Aktif',
+          displayText: 'AKTIF',
         );
       case 'expired':
         return const DriverStatusInfo(
           color: AppColors.textSub,
           icon: Icons.cancel_outlined,
-          label: 'Expired',
-          displayText: 'EXPIRED',
+          label: 'Kedaluwarsa',
+          displayText: 'KEDALUWARSA',
         );
       default:
         // pending_payment, dll — gunakan mapping driver

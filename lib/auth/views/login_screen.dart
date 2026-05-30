@@ -65,7 +65,7 @@ class LoginScreen extends GetView<LoginController> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Welcome Back',
+          'Selamat Datang',
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -88,13 +88,12 @@ class LoginScreen extends GetView<LoginController> {
         children: [
           _buildTextField(
             label: 'Email Address',
-            hint: 'Enter your work email',
+            hint: 'Masukkan email kerja',
             textController: controller.emailController,
             icon: Icons.alternate_email_rounded,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             autofillHints: [AutofillHints.email],
-            onChanged: (v) => controller.email.value = v,
           ),
           const SizedBox(height: 24),
           // Password field — reactive untuk toggle show/hide
@@ -106,7 +105,6 @@ class LoginScreen extends GetView<LoginController> {
             obscureText: controller.obscurePassword.value,
             textInputAction: TextInputAction.done,
             autofillHints: [AutofillHints.password],
-            onChanged: (v) => controller.password.value = v,
             onSubmitted: (_) => controller.login(),
             suffixIcon: IconButton(
               icon: Icon(
@@ -213,7 +211,7 @@ class LoginScreen extends GetView<LoginController> {
                   ),
                 )
               : const Text(
-                  'Sign In',
+                  'Masuk',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
         ),

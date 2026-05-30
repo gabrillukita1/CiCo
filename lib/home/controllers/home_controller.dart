@@ -35,7 +35,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Timer? _statusPollingTimer;
   Timer? _countdownTimer;
-  bool _isLoadingStatus = false; // guard terhadap concurrent loadCheckInStatus
+  bool _isLoadingStatus = false;   // guard concurrent loadCheckInStatus calls
+  DateTime? _locationTimestamp;    // untuk expiry cache posisi GPS
 
   @override
   void onInit() {
@@ -49,6 +50,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       manualRefresh();
+      fetchCurrentLocation(); // refresh lokasi saat app kembali aktif
     }
   }
 
@@ -84,30 +86,37 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         }
       }
       if (permission == LocationPermission.deniedForever) {
-        AppNotifier.error("Lokasi", "Izin lokasi ditolak permanen");
+        final openSettings = await AppNotifier.confirmDialog(
+          title: 'Izin Lokasi Diblokir',
+          message: 'Izin lokasi diblokir permanen. Buka pengaturan untuk mengaktifkannya.',
+          confirmText: 'Buka Pengaturan',
+          cancelText: 'Nanti',
+          type: AppNoticeType.warning,
+        );
+        if (openSettings) await Geolocator.openAppSettings();
         return;
       }
       Position pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
       currentPosition.value = pos;
+      _locationTimestamp = DateTime.now();
+
       List<Placemark> placemarks = await placemarkFromCoordinates(
         pos.latitude,
         pos.longitude,
       );
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
-        List<String?> parts = [
-          // place.street,
+        final parts = [
           place.subLocality,
           place.locality,
           place.administrativeArea,
           place.country,
         ].where((e) => e != null && e.trim().isNotEmpty).toList();
-
         currentAddress.value = parts.join(', ');
       } else {
-        currentAddress.value = "Alamat tidak ditemukan";
+        currentAddress.value = 'Alamat tidak ditemukan';
       }
     } catch (e) {
       AppNotifier.error("Error", "Gagal ambil lokasi: $e");
@@ -119,71 +128,67 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     if (_isLoadingStatus) return; // cegah concurrent calls
     _isLoadingStatus = true;
     try {
-    final previousStatus = checkInStatus.value;
-    final dashboard = await _authService.getDashboard();
-    if (dashboard == null) {
-      // Jika belum pernah load (first launch), reset ke idle
-      // Jika sudah ada status → pertahankan, mungkin hanya network error sementara
-      if (checkInStatus.value.isEmpty) {
-        _resetToIdle();
-      } else {
-        AppNotifier.warning('Koneksi', 'Gagal memuat status. Menampilkan data terakhir.');
-      }
-      return;
-    }
-
-    // Update data driver dari dashboard
-    final name = dashboard['name'] as String? ?? '';
-    if (name.isNotEmpty) userName.value = name;
-    final vehicle = dashboard['vehicleNumber'] as String? ?? '';
-    if (vehicle.isNotEmpty) vehicleNumber.value = vehicle;
-
-    final serverStatus =
-        (dashboard['status'] as String?)?.toLowerCase() ?? 'offline';
-    checkInStatus.value = serverStatus;
-
-    final session = dashboard['session'] as Map<String, dynamic>?;
-
-    // Format start/end time dari session
-    startTime.value = tz.formatTime(session?['checkinAt']);
-    endTime.value = tz.formatTime(session?['expiresAt']);
-    remainingMinutes.value = session?['remainingMinutes'] as int?;
-
-    switch (serverStatus) {
-      case 'on_duty':
-      case 'standby':
-        break;
-      case 'pending_payment':
-        _startPollingCheckInSession();
-        break;
-      case 'offline':
-      default:
-        _resetToIdle();
-        break;
-    }
-
-    // Mulai countdown lokal setiap menit jika ada sisa waktu
-    _countdownTimer?.cancel();
-    if (remainingMinutes.value != null && remainingMinutes.value! > 0) {
-      _countdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-        final current = remainingMinutes.value;
-        if (current != null && current > 0) {
-          remainingMinutes.value = current - 1;
+      final previousStatus = checkInStatus.value;
+      final dashboard = await _authService.getDashboard();
+      if (dashboard == null) {
+        // Pertahankan status terakhir jika network error — reset hanya saat first launch
+        if (checkInStatus.value.isEmpty) {
+          _resetToIdle();
         } else {
-          _countdownTimer?.cancel();
+          AppNotifier.warning('Koneksi', 'Gagal memuat status. Menampilkan data terakhir.');
         }
-      });
-    }
+        return;
+      }
 
-    // Notifikasi transisi ke on_duty
-    if (previousStatus != 'on_duty' && checkInStatus.value == 'on_duty') {
-      AppNotifier.success(
-        'Pembayaran Berhasil!',
-        'Sesi kerja Anda sudah aktif.',
-        duration: const Duration(seconds: 5),
-      );
-    }
+      // Update data driver dari dashboard
+      final name = dashboard['name'] as String? ?? '';
+      if (name.isNotEmpty) userName.value = name;
+      final vehicle = dashboard['vehicleNumber'] as String? ?? '';
+      if (vehicle.isNotEmpty) vehicleNumber.value = vehicle;
 
+      final serverStatus =
+          (dashboard['status'] as String?)?.toLowerCase() ?? 'offline';
+      checkInStatus.value = serverStatus;
+
+      final session = dashboard['session'] as Map<String, dynamic>?;
+      startTime.value = tz.formatTime(session?['checkinAt']);
+      endTime.value = tz.formatTime(session?['expiresAt']);
+      remainingMinutes.value = session?['remainingMinutes'] as int?;
+
+      switch (serverStatus) {
+        case 'on_duty':
+        case 'standby':
+          break;
+        case 'pending_payment':
+          _startPollingCheckInSession();
+          break;
+        case 'offline':
+        default:
+          _resetToIdle();
+          break;
+      }
+
+      // Countdown lokal setiap menit jika ada sisa waktu
+      _countdownTimer?.cancel();
+      if (remainingMinutes.value != null && remainingMinutes.value! > 0) {
+        _countdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+          final current = remainingMinutes.value;
+          if (current != null && current > 0) {
+            remainingMinutes.value = current - 1;
+          } else {
+            _countdownTimer?.cancel();
+          }
+        });
+      }
+
+      // Notifikasi transisi ke on_duty
+      if (previousStatus != 'on_duty' && checkInStatus.value == 'on_duty') {
+        AppNotifier.success(
+          'Pembayaran Berhasil!',
+          'Sesi kerja Anda sudah aktif.',
+          duration: const Duration(seconds: 5),
+        );
+      }
     } finally {
       _isLoadingStatus = false;
     }
@@ -255,17 +260,23 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  /// Ambil posisi saat ini. Return null dan tampilkan error jika gagal.
+  /// Ambil posisi saat ini.
+  /// Cache valid selama [maxAge] (default 10 menit). Return null + tampilkan error jika gagal.
   Future<Position?> _ensureLocation({
     LocationAccuracy accuracy = LocationAccuracy.high,
     Duration timeout = const Duration(seconds: 10),
+    Duration maxAge = const Duration(minutes: 10),
   }) async {
-    if (currentPosition.value != null) return currentPosition.value;
+    final cached = currentPosition.value;
+    if (cached != null && _locationTimestamp != null) {
+      if (DateTime.now().difference(_locationTimestamp!) < maxAge) return cached;
+    }
     try {
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: accuracy,
       ).timeout(timeout);
       currentPosition.value = pos;
+      _locationTimestamp = DateTime.now();
       return pos;
     } catch (_) {
       AppNotifier.error(
@@ -287,7 +298,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _doCheckIn() async {
     // 1. Biometric wajib
-    final bool authenticated = await requestBiometricForCheckIn();
+    final bool authenticated = await _requestBiometricForCheckIn();
     if (!authenticated) return;
 
     // 2. Lokasi wajib
@@ -422,6 +433,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _handleSnapPaymentResult(dynamic result) async {
+    // null = user tekan back tanpa ada navigation result (Android back button)
+    if (result == null) {
+      await refreshSessionStatus();
+      return;
+    }
     if (result == 'success') {
       await refreshSessionStatus();
       AppNotifier.success(
@@ -457,7 +473,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Future<void> logout() => AuthHelper.confirmAndLogout();
 
-  Future<bool> requestBiometricForCheckIn() async {
+  Future<bool> _requestBiometricForCheckIn() async {
     try {
       final bool authenticated = await biometricService.authenticate(
         reason: 'Konfirmasi identitas untuk check-in',

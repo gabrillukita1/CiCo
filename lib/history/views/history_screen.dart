@@ -8,10 +8,10 @@ import 'package:intl/intl.dart';
 
 // ── Filter chip data ────────────────────────────────────────────────────────
 const _filters = [
-  (label: 'All', filter: DateFilter.all),
-  (label: 'Today', filter: DateFilter.today),
-  (label: 'This Week', filter: DateFilter.thisWeek),
-  (label: 'This Month', filter: DateFilter.thisMonth),
+  (label: 'Semua', filter: DateFilter.all),
+  (label: 'Hari Ini', filter: DateFilter.today),
+  (label: 'Minggu Ini', filter: DateFilter.thisWeek),
+  (label: 'Bulan Ini', filter: DateFilter.thisMonth),
 ];
 
 class HistoryScreen extends StatefulWidget {
@@ -52,7 +52,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Session History',
+          'Riwayat Sesi',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         backgroundColor: Colors.white,
@@ -97,7 +97,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'No session history yet',
+                        'Belum ada riwayat sesi',
                         style: TextStyle(
                           color: AppColors.textSub,
                           fontSize: 14,
@@ -189,7 +189,7 @@ class _FilterBar extends StatelessWidget {
       final fmt = DateFormat('dd MMM');
       return '${fmt.format(c.customStart.value!)} – ${fmt.format(c.customEnd.value!)}';
     }
-    return 'Custom';
+    return 'Kustom';
   }
 
   Future<void> _pickCustomRange(BuildContext context) async {
@@ -339,7 +339,7 @@ class _SessionCard extends StatelessWidget {
                         : '—',
                     date: _showCheckout(status, payment)
                         ? (status == 'active'
-                            ? 'Ongoing'
+                            ? 'Sedang berlangsung'
                             : _formatDate(session['checkoutAt']))
                         : '',
                     alignRight: true,
@@ -464,7 +464,7 @@ class _SessionCard extends StatelessWidget {
         break;
       case 'expired':
         badgeColor = AppColors.textSub;
-        badgeLabel = 'Expired';
+        badgeLabel = 'Kedaluwarsa';
         break;
       case 'cancelled':
         badgeColor = AppColors.inactive;
@@ -497,7 +497,7 @@ class _SessionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Payment',
+                  'Pembayaran',
                   style: TextStyle(fontSize: 11, color: AppColors.textSub),
                 ),
                 const SizedBox(height: 2),
@@ -582,7 +582,7 @@ class _SessionCard extends StatelessWidget {
           ),
         ),
         title: const Text(
-          'Dispatch',
+          'Penugasan',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
