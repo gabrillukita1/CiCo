@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:cico_project/core/config/app_config.dart';
@@ -5,7 +6,6 @@ import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'dart:io';
 
 class AuthService {
   late final Dio _dio;
@@ -210,7 +210,7 @@ class AuthService {
     return null;
   }
 
-  // LOGOUT
+  // LOGOUT (API + clear local storage)
   Future<bool> performLogout() async {
     try {
       await _dio.post('/auth/logout');
@@ -220,6 +220,22 @@ class AuthService {
       await logoutLocal();
     }
     return true;
+  }
+
+  // CONFIRM & LOGOUT — satu tempat untuk dialog + navigasi
+  Future<void> confirmAndLogout() async {
+    final confirm = await AppNotifier.confirmDialog(
+      title: 'Konfirmasi Logout',
+      message: 'Apakah kamu yakin ingin logout dari aplikasi?',
+      confirmText: 'Ya, Logout',
+      type: AppNoticeType.error,
+    );
+    if (!confirm) return;
+    try {
+      await performLogout();
+    } finally {
+      Get.offAllNamed('/login');
+    }
   }
 
   // GET PROFILE

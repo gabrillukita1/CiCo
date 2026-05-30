@@ -1,4 +1,5 @@
 import 'package:cico_project/core/style/app_colors.dart';
+import 'package:cico_project/core/utils/status_helper.dart';
 import 'package:cico_project/home/controllers/home_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swipe_button/flutter_swipe_button.dart';
@@ -85,7 +86,7 @@ class HomeScreen extends GetView<HomeController> {
               SwipeButton.expand(
                 height: 58,
                 activeTrackColor: AppColors.surface,
-                activeThumbColor: const Color(0xFF3B82F6),
+                activeThumbColor: AppColors.standby,
                 elevationThumb: 2,
                 onSwipe: controller.returnToStandby,
                 thumb: isProcessing
@@ -301,44 +302,17 @@ class HomeScreen extends GetView<HomeController> {
 
   Widget getStatusSection() {
     return Obx(() {
-      final status = controller.checkInStatus.value;
-
-      Color statusColor;
-      IconData statusIcon;
-      String statusText;
-
-      switch (status) {
-        case 'on_duty':
-          statusColor = AppColors.active;
-          statusIcon = Icons.check_circle_rounded;
-          statusText = 'ON DUTY';
-          break;
-        case 'standby':
-          statusColor = const Color(0xFF3B82F6);
-          statusIcon = Icons.access_time_rounded;
-          statusText = 'STANDBY';
-          break;
-        case 'pending_payment':
-          statusColor = AppColors.waiting;
-          statusIcon = Icons.hourglass_empty_rounded;
-          statusText = 'PENDING PAYMENT';
-          break;
-        case 'offline':
-        default:
-          statusColor = AppColors.inactive;
-          statusIcon = Icons.cancel_rounded;
-          statusText = 'OFFLINE';
-      }
+      final info = StatusHelper.of(controller.checkInStatus.value);
 
       return Column(
         children: [
           const SizedBox(height: 24),
-          _buildStatusVisual(statusColor, statusIcon),
+          _buildStatusVisual(info.color, info.icon),
           const SizedBox(height: 20),
-          _buildStatusBadge(statusText, statusColor),
+          _buildStatusBadge(info.displayText, info.color),
           if (controller.remainingMinutes.value != null) ...[
             const SizedBox(height: 20),
-            _buildRemainingTime(controller.remainingMinutes.value!, statusColor),
+            _buildRemainingTime(controller.remainingMinutes.value!, info.color),
           ],
           const SizedBox(height: 24),
         ],

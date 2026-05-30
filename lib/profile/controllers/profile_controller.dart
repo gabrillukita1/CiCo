@@ -3,7 +3,7 @@ import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:get/get.dart';
 
 class ProfileController extends GetxController {
-  final _authService = AuthService();
+  final _authService = Get.find<AuthService>();
 
   final isLoading = true.obs;
   final profile = Rxn<Map<String, dynamic>>();
@@ -16,20 +16,18 @@ class ProfileController extends GetxController {
 
   Future<void> loadProfile() async {
     isLoading.value = true;
-    final data = await _authService.getProfile();
-    profile.value = data;
-    isLoading.value = false;
+    try {
+      final data = await _authService.getProfile();
+      if (data == null) {
+        AppNotifier.error('Gagal', 'Tidak dapat memuat profil. Coba lagi.');
+      }
+      profile.value = data;
+    } catch (e) {
+      AppNotifier.error('Error', 'Terjadi kesalahan: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  Future<void> logout() async {
-    final confirm = await AppNotifier.confirmDialog(
-      title: 'Konfirmasi Logout',
-      message: 'Apakah kamu yakin ingin logout dari aplikasi?',
-      confirmText: 'Ya, Logout',
-      type: AppNoticeType.error,
-    );
-    if (!confirm) return;
-    await _authService.performLogout();
-    Get.offAllNamed('/login');
-  }
+  Future<void> logout() => _authService.confirmAndLogout();
 }

@@ -6,7 +6,7 @@ import '../../core/widgets/app_notifier.dart';
 import '../services/auth_service.dart';
 
 class LoginController extends GetxController {
-  final AuthService _authService = AuthService();
+  final AuthService _authService = Get.find<AuthService>();
 
   var isLoading = false.obs;
   var email = ''.obs;
@@ -14,6 +14,13 @@ class LoginController extends GetxController {
 
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
+  @override
+  void onClose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.onClose();
+  }
 
   Future<void> login() async {
     if (email.value.isEmpty || password.value.isEmpty) {

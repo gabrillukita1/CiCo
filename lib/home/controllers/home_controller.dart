@@ -12,7 +12,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
 class HomeController extends GetxController with WidgetsBindingObserver {
-  final AuthService _authService = AuthService();
+  final AuthService _authService = Get.find<AuthService>();
 
   final isInitializing = true.obs;
   final userName = ''.obs;
@@ -35,6 +35,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   final currentAddress = ''.obs;
 
   Timer? _statusPollingTimer;
+  Timer? _countdownTimer;
 
   @override
   void onInit() {
@@ -62,6 +63,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _statusPollingTimer?.cancel();
     _statusPollingTimer = null;
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
     super.onClose();
   }
 
@@ -155,6 +158,19 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       default:
         _resetToIdle();
         break;
+    }
+
+    // Mulai countdown lokal setiap menit jika ada sisa waktu
+    _countdownTimer?.cancel();
+    if (remainingMinutes.value != null && remainingMinutes.value! > 0) {
+      _countdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+        final current = remainingMinutes.value;
+        if (current != null && current > 0) {
+          remainingMinutes.value = current - 1;
+        } else {
+          _countdownTimer?.cancel();
+        }
+      });
     }
 
     // Notifikasi transisi ke on_duty
@@ -457,23 +473,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> logout() async {
-    final confirm = await AppNotifier.confirmDialog(
-      title: 'Konfirmasi Logout',
-      message: 'Apakah kamu yakin ingin logout dari aplikasi?',
-      confirmText: 'Ya, Logout',
-      type: AppNoticeType.error,
-    );
-    if (!confirm) {
-      return;
-    }
-    try {
-      await _authService.performLogout();
-    } finally {
-      userName.value = '';
-      Get.offAllNamed('/login');
-    }
-  }
+  Future<void> logout() => _authService.confirmAndLogout();
 
   Future<bool> requestBiometricForCheckIn() async {
     try {

@@ -1,4 +1,5 @@
 import 'package:cico_project/core/style/app_colors.dart';
+import 'package:cico_project/core/utils/status_helper.dart';
 import 'package:cico_project/profile/controllers/profile_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -98,35 +99,17 @@ class ProfileScreen extends GetView<ProfileController> {
   }
 
   Widget _buildStatusBadge(String status) {
-    Color color;
-    String label;
-    switch (status) {
-      case 'standby':
-        color = AppColors.active;
-        label = 'Standby';
-        break;
-      case 'on_duty':
-        color = AppColors.primary;
-        label = 'Bertugas';
-        break;
-      case 'pending_payment':
-        color = AppColors.waiting;
-        label = 'Menunggu Pembayaran';
-        break;
-      default:
-        color = AppColors.inactive;
-        label = 'Offline';
-    }
+    final info = StatusHelper.of(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: info.color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
-        label,
+        info.label,
         style: TextStyle(
-          color: color,
+          color: info.color,
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),

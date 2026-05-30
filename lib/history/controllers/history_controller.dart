@@ -1,11 +1,12 @@
 import 'package:cico_project/auth/services/auth_service.dart';
+import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 enum DateFilter { all, today, thisWeek, thisMonth, custom }
 
 class HistoryController extends GetxController {
-  final _authService = AuthService();
+  final _authService = Get.find<AuthService>();
 
   final sessionList = <Map<String, dynamic>>[].obs;
   final isLoading = true.obs;
@@ -61,20 +62,27 @@ class HistoryController extends GetxController {
     _currentPage = 1;
     hasMore.value = true;
 
-    final range = _activeDateRange;
-    final res = await _authService.getCheckinHistory(
-      page: 1,
-      limit: _limit,
-      startDate: range?.start,
-      endDate: range?.end,
-    );
-    if (res != null) {
-      final data = res['data'] as List? ?? [];
-      sessionList.value = data.cast<Map<String, dynamic>>();
-      final totalPages = res['totalPages'] as int? ?? 1;
-      hasMore.value = _currentPage < totalPages;
+    try {
+      final range = _activeDateRange;
+      final res = await _authService.getCheckinHistory(
+        page: 1,
+        limit: _limit,
+        startDate: range?.start,
+        endDate: range?.end,
+      );
+      if (res != null) {
+        final data = res['data'] as List? ?? [];
+        sessionList.value = data.cast<Map<String, dynamic>>();
+        final totalPages = res['totalPages'] as int? ?? 1;
+        hasMore.value = _currentPage < totalPages;
+      } else {
+        AppNotifier.error('Gagal', 'Tidak dapat memuat riwayat sesi.');
+      }
+    } catch (e) {
+      AppNotifier.error('Error', 'Terjadi kesalahan: $e');
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
   }
 
   Future<void> loadMore() async {
