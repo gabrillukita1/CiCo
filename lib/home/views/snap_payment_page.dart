@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -117,11 +117,13 @@ class _SnapPaymentPageState extends State<SnapPaymentPage> {
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
       ));
-      (dio.httpClientAdapter as DefaultHttpClientAdapter)
-          .onHttpClientCreate = (client) {
-        client.badCertificateCallback = (cert, host, port) => true;
-        return client;
-      };
+      if (kDebugMode) {
+        (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+          final client = HttpClient();
+          client.badCertificateCallback = (cert, host, port) => true;
+          return client;
+        };
+      }
 
       final response = await dio.get<Uint8List>(
         url,
@@ -184,7 +186,7 @@ class _SnapPaymentPageState extends State<SnapPaymentPage> {
           WebViewWidget(controller: _controller),
           if (_isDownloading)
             Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

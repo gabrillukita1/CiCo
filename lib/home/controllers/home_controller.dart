@@ -11,7 +11,7 @@ import '../../auth/services/auth_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
-class HomeController extends GetxController {
+class HomeController extends GetxController with WidgetsBindingObserver {
   final AuthService _authService = AuthService();
 
   final isInitializing = true.obs;
@@ -39,8 +39,16 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     _initDashboard();
     fetchCurrentLocation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      manualRefresh();
+    }
   }
 
   Future<void> _initDashboard() async {
@@ -51,6 +59,7 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _statusPollingTimer?.cancel();
     _statusPollingTimer = null;
     super.onClose();
@@ -253,7 +262,6 @@ class HomeController extends GetxController {
       latitude: pos.latitude,
       longitude: pos.longitude,
     );
-    print('[CHECKIN] res: $res');
     if (!_isApiSuccess(res)) {
       AppNotifier.error('Gagal Check-In', res?['message'] ?? 'Gagal check-in');
       await refreshSessionStatus();
@@ -265,7 +273,6 @@ class HomeController extends GetxController {
     final redirectUrl = res?['redirect_url'] as String?
         ?? payment?['snapRedirectUrl'] as String?
         ?? '';
-    print('[CHECKIN] redirectUrl: $redirectUrl');
 
     // 5. Buka payment jika ada redirectUrl, atau refresh status
     if (redirectUrl.isNotEmpty) {
@@ -299,7 +306,6 @@ class HomeController extends GetxController {
       latitude: pos.latitude,
       longitude: pos.longitude,
     );
-    print('[RETRY] res: $res');
     if (!_isApiSuccess(res)) {
       AppNotifier.error('Gagal', res?['message'] ?? 'Gagal mendapatkan halaman pembayaran');
       return;
@@ -309,7 +315,6 @@ class HomeController extends GetxController {
     final redirectUrl = res?['redirect_url'] as String?
         ?? paymentData?['snapRedirectUrl'] as String?
         ?? '';
-    print('[RETRY] redirectUrl: $redirectUrl');
     if (redirectUrl.isEmpty) {
       AppNotifier.warning('Pembayaran', 'URL pembayaran tidak ditemukan.');
       return;
@@ -407,8 +412,8 @@ class HomeController extends GetxController {
 
   bool _isApiSuccess(Map<String, dynamic>? res) {
     if (res == null) return false;
-    // API baru: ada field 'error' atau statusCode 4xx/5xx = gagal
-    if (res.containsKey('error')) return false;
+    // API baru: error == true atau statusCode 4xx/5xx = gagal
+    if (res['error'] == true) return false;
     final statusCode = res['statusCode'] as int?;
     if (statusCode != null && statusCode >= 400) return false;
     // API lama (fallback)

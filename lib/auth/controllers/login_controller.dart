@@ -20,6 +20,10 @@ class LoginController extends GetxController {
       AppNotifier.warning('Validasi', 'Email dan password harus diisi');
       return;
     }
+    if (!GetUtils.isEmail(email.value)) {
+      AppNotifier.warning('Validasi', 'Format email tidak valid');
+      return;
+    }
 
     isLoading.value = true;
     final result = await _authService.login(email.value, password.value);
@@ -31,10 +35,4 @@ class LoginController extends GetxController {
     }
   }
 
-  Future<void> logout() async {
-    isLoading.value = true;
-    await _authService.performLogout();
-    isLoading.value = false;
-    Get.offAllNamed('/login');
-  }
 }

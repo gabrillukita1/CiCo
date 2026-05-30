@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:cico_project/core/config/app_config.dart';
 import 'package:cico_project/core/widgets/app_notifier.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'dart:io';
@@ -22,13 +23,15 @@ class AuthService {
       ),
     );
 
-    // Bypass SSL certificate verification (DEVELOPMENT/EMULATOR)
-    (_dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
-        (HttpClient client) {
-          client.badCertificateCallback =
-              (X509Certificate cert, String host, int port) => true;
-          return null;
-        };
+    // Bypass SSL certificate verification (hanya untuk debug/emulator)
+    if (kDebugMode) {
+      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback =
+            (X509Certificate cert, String host, int port) => true;
+        return client;
+      };
+    }
 
     _dio.interceptors.add(
       InterceptorsWrapper(

@@ -74,7 +74,7 @@ class ProfileScreen extends GetView<ProfileController> {
         Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 3),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 3),
           ),
           child: const CircleAvatar(
             radius: 44,
@@ -120,7 +120,7 @@ class ProfileScreen extends GetView<ProfileController> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
@@ -170,7 +170,7 @@ class ProfileScreen extends GetView<ProfileController> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),

@@ -45,7 +45,7 @@ class LoginScreen extends GetView<LoginController> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
+              color: AppColors.primary.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -145,7 +145,7 @@ class LoginScreen extends GetView<LoginController> {
             prefixIcon: Icon(
               icon,
               size: 20,
-              color: AppColors.primary.withOpacity(0.7),
+              color: AppColors.primary.withValues(alpha: 0.7),
             ),
             filled: true,
             fillColor: Colors.white,
@@ -205,7 +205,7 @@ class LoginScreen extends GetView<LoginController> {
       child: Text(
         "v1.0.0",
         style: TextStyle(
-          color: AppColors.textSub.withOpacity(0.5),
+          color: AppColors.textSub.withValues(alpha: 0.5),
           fontSize: 12,
         ),
       ),

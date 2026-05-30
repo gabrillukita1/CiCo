@@ -43,7 +43,7 @@ class AppNotifier {
       messageText: Text(
         message,
         style: TextStyle(
-          color: Colors.white.withOpacity(0.9),
+          color: Colors.white.withValues(alpha: 0.9),
           fontSize: 13,
           height: 1.4,
         ),
@@ -56,20 +56,20 @@ class AppNotifier {
         margin: const EdgeInsets.only(left: 8),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           shape: BoxShape.circle,
         ),
         child: Icon(style.icon, color: Colors.white, size: 22),
       ),
       shouldIconPulse: true,
-      backgroundColor: style.backgroundColor.withOpacity(0.95),
+      backgroundColor: style.backgroundColor.withValues(alpha: 0.95),
       colorText: Colors.white,
       duration: duration,
       dismissDirection: DismissDirection.horizontal,
       snackStyle: SnackStyle.FLOATING,
       boxShadows: [
         BoxShadow(
-          color: style.backgroundColor.withOpacity(0.4),
+          color: style.backgroundColor.withValues(alpha: 0.4),
           blurRadius: 24,
           offset: const Offset(0, 12),
         ),
@@ -103,7 +103,7 @@ class AppNotifier {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: style.backgroundColor.withOpacity(0.1),
+                color: style.backgroundColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(style.icon, color: style.backgroundColor, size: 40),
@@ -142,9 +142,9 @@ class AppNotifier {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text(
-                    'Batal',
-                    style: TextStyle(color: AppColors.textSub, fontWeight: FontWeight.bold),
+                  child: Text(
+                    cancelText,
+                    style: const TextStyle(color: AppColors.textSub, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

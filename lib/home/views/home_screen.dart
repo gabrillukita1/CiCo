@@ -4,20 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_swipe_button/flutter_swipe_button.dart';
 import 'package:get/get.dart';
 
-class HomeScreen extends GetView<HomeController> with WidgetsBindingObserver {
-  HomeScreen({super.key}) {
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      controller.manualRefresh();
-    }
-  }
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-  }
+class HomeScreen extends GetView<HomeController> {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +184,7 @@ class HomeScreen extends GetView<HomeController> with WidgetsBindingObserver {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -232,14 +220,27 @@ class HomeScreen extends GetView<HomeController> with WidgetsBindingObserver {
   }
 
   Widget _buildAvatar() {
+    final name = controller.userName.value;
+    final initials = name.trim().isEmpty
+        ? '?'
+        : name.trim().split(RegExp(r'\s+')).take(2).map((w) => w[0].toUpperCase()).join();
+
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: AppColors.background, width: 3),
       ),
-      child: const CircleAvatar(
+      child: CircleAvatar(
         radius: 26,
-        backgroundImage: NetworkImage('https://images.unsplash.com/photo-1580489944761-15a19d654956'),
+        backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+        child: Text(
+          initials,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
       ),
     );
   }
@@ -274,7 +275,7 @@ class HomeScreen extends GetView<HomeController> with WidgetsBindingObserver {
   Widget _buildLocationRow() {
     return Row(
       children: [
-        Icon(Icons.location_on_rounded, size: 14, color: AppColors.primary.withOpacity(0.8)),
+        Icon(Icons.location_on_rounded, size: 14, color: AppColors.primary.withValues(alpha: 0.8)),
         const SizedBox(width: 4),
         Expanded(
           child: Text(
@@ -408,8 +409,8 @@ class HomeScreen extends GetView<HomeController> with WidgetsBindingObserver {
     return Stack(
       alignment: Alignment.center,
       children: [
-        Container(width: 200, height: 200, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withOpacity(0.05))),
-        Container(width: 160, height: 160, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withOpacity(0.1))),
+        Container(width: 200, height: 200, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: 0.05))),
+        Container(width: 160, height: 160, decoration: BoxDecoration(shape: BoxShape.circle, color: color.withValues(alpha: 0.1))),
         Icon(icon, size: 90, color: color),
       ],
     );
@@ -418,7 +419,7 @@ class HomeScreen extends GetView<HomeController> with WidgetsBindingObserver {
   Widget _buildStatusBadge(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(100)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(100)),
       child: Text(
         text,
         style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.2),
