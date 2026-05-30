@@ -288,51 +288,59 @@ class AuthService {
   }
 
   // CHECK-IN
-  Future<Map<String, dynamic>?> checkIn() async {
+  Future<Map<String, dynamic>?> checkIn({
+    required double latitude,
+    required double longitude,
+  }) async {
     try {
-      final response = await _dio.post('/checkin');
+      final response = await _dio.post(
+        '/driver/checkin',
+        data: {'latitude': latitude, 'longitude': longitude},
+      );
       return response.data;
     } on DioException catch (e) {
       return {
-        'success': false,
-        'message': e.response?.data['message'] ?? 'Check-in gagal',
+        'error': true,
+        'message': e.response?.data?['message'] ?? 'Check-in gagal',
+        'statusCode': e.response?.statusCode,
       };
     }
   }
 
-  // PAYMENT
-  Future<Map<String, dynamic>?> pay() async {
+  // GET DRIVER DASHBOARD
+  Future<Map<String, dynamic>?> getDashboard() async {
     try {
-      final response = await _dio.post('/pay');
-      // print('PAY API SUCCESS: ${response.data}');
-      return response.data;
-    } on DioException catch (e) {
-      // print('PAY API ERROR - Status: ${e.response?.statusCode}');
-      // print('PAY API ERROR - Full Response: ${e.response?.data}');
-      // print('PAY API ERROR - Details: ${e.response?.data['error_messages'] ?? e.response?.data['message']}');
-      return {
-        'success': false,
-        'message':
-            e.response?.data['message'] ??
-            'Payment gagal (kode ${e.response?.statusCode})',
-      };
-    }
-  }
-
-  // GET CHECK-IN SESSION
-  Future<Map<String, dynamic>?> getCheckInSession() async {
-    try {
-      final response = await _dio.get('/checkin-session');
-      return response.data;
+      final response = await _dio.get('/driver/dashboard');
+      return response.data as Map<String, dynamic>;
     } on DioException {
       return null;
+    }
+  }
+
+  // RETURN TO STANDBY
+  Future<Map<String, dynamic>?> returnToStandby({
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/driver/checkin/return',
+        data: {'latitude': latitude, 'longitude': longitude},
+      );
+      return response.data;
+    } on DioException catch (e) {
+      return {
+        'error': true,
+        'message': e.response?.data?['message'] ?? 'Gagal return to standby',
+        'statusCode': e.response?.statusCode,
+      };
     }
   }
 
   // CHECKOUT
   Future<Map<String, dynamic>?> checkout() async {
     try {
-      final response = await _dio.post('/checkout');
+      final response = await _dio.post('/driver/checkin/checkout');
       // print('CHECKOUT API SUCCESS: ${response.data}');
       return response.data;
     } on DioException catch (e) {

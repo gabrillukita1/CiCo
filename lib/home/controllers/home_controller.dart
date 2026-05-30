@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:cico_project/auth/services/biometric_service.dart';
+import 'package:cico_project/core/utils/date_utils.dart' as tz;
 import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:cico_project/home/views/snap_payment_page.dart';
 import 'package:get/get.dart';
@@ -12,8 +14,10 @@ import 'package:geocoding/geocoding.dart';
 class HomeController extends GetxController {
   final AuthService _authService = AuthService();
 
+  final isInitializing = true.obs;
   final userName = ''.obs;
   final userEmail = ''.obs;
+  final vehicleNumber = ''.obs;
 
   final startTime = ''.obs;
   final endTime = ''.obs;
@@ -23,7 +27,7 @@ class HomeController extends GetxController {
   final statusText = 'Off'.obs;
   final isProcessing = false.obs;
 
-  final snapToken = ''.obs;
+  final remainingMinutes = Rxn<int>();
 
   final biometricService = BiometricService();
 
@@ -35,13 +39,14 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments;
-    if (args is Map) {
-      userName.value = args['name'].toString();
-      userEmail.value = args['email'].toString();
-    }
-    loadCheckInStatus();
+    _initDashboard();
     fetchCurrentLocation();
+  }
+
+  Future<void> _initDashboard() async {
+    isInitializing.value = true;
+    await loadCheckInStatus();
+    isInitializing.value = false;
   }
 
   @override
@@ -100,83 +105,66 @@ class HomeController extends GetxController {
 
   Future<void> loadCheckInStatus() async {
     final previousStatus = checkInStatus.value;
-    final session = await _authService.getCheckInSession();
-    if (session == null || session['status'] != 'success') {
+    final dashboard = await _authService.getDashboard();
+    if (dashboard == null) {
       _resetToIdle();
       return;
     }
-    final checkinData =
-        session['data']?['checkin_session'] as Map<String, dynamic>?;
 
-    // Format time
-    final rawStart = checkinData?['start_time'];
-    final rawEnd = checkinData?['end_time'];
-    startTime.value = _formatTime(rawStart);
-    endTime.value = _formatTime(rawEnd);
+    // Update data driver dari dashboard
+    final name = dashboard['name'] as String? ?? '';
+    if (name.isNotEmpty) userName.value = name;
+    final vehicle = dashboard['vehicleNumber'] as String? ?? '';
+    if (vehicle.isNotEmpty) vehicleNumber.value = vehicle;
 
-    if (checkinData == null) {
-      // print('→ Tidak ada checkin_session di response');
-      _resetToIdle();
-      return;
-    }
     final serverStatus =
-        (checkinData['status'] as String?)?.toLowerCase() ?? 'none';
+        (dashboard['status'] as String?)?.toLowerCase() ?? 'offline';
     checkInStatus.value = serverStatus;
 
-    // print("checkInStatus: ${checkInStatus.value}");
+    final session = dashboard['session'] as Map<String, dynamic>?;
+
+    // Format start/end time dari session
+    startTime.value = tz.formatTime(session?['checkinAt']);
+    endTime.value = tz.formatTime(session?['expiresAt']);
+    remainingMinutes.value = session?['remainingMinutes'] as int?;
 
     switch (serverStatus) {
-      // Active
-      case 'active':
+      case 'on_duty':
         isCheckedIn.value = true;
-        statusText.value = 'Aktif';
-        snapToken.value = '';
+        statusText.value = 'On Duty';
         break;
-      // Pending payment
-      case 'waiting_for_payment':
+      case 'standby':
+        isCheckedIn.value = true;
+        statusText.value = 'Standby';
+        break;
+      case 'pending_payment':
         isCheckedIn.value = false;
-        statusText.value = 'Menunggu Pembayaran';
-        final token =
-            (checkinData['snap_token'] ?? checkinData['token'] ?? '') as String;
-        if (token.isNotEmpty && token != snapToken.value) {
-          snapToken.value = token;
-        }
+        statusText.value = 'Pending Payment';
         _startPollingCheckInSession();
         break;
-      // Expired
-      case 'expired':
+      case 'offline':
       default:
         _resetToIdle();
         break;
     }
 
-    // Notifikasi transisi ke aktif
-    if (previousStatus != 'active' && checkInStatus.value == 'active') {
+    // Notifikasi transisi ke on_duty
+    if (previousStatus != 'on_duty' && checkInStatus.value == 'on_duty') {
       AppNotifier.success(
         'Pembayaran Berhasil!',
-        'Sesi aktif sampai ${checkinData['end_time'] ?? 'waktu tertentu'}',
+        'Sesi kerja Anda sudah aktif.',
         duration: const Duration(seconds: 5),
       );
-    }
-  }
-
-  String _formatTime(dynamic value) {
-    if (value == null) return '--:--';
-    try {
-      final dt = DateTime.parse(value.toString());
-      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return '--:--';
     }
   }
 
   void _resetToIdle() {
     isCheckedIn.value = false;
     statusText.value = 'Off';
-    checkInStatus.value = 'expired';
-    snapToken.value = '';
+    checkInStatus.value = 'offline';
     startTime.value = '--:--';
     endTime.value = '--:--';
+    remainingMinutes.value = null;
   }
 
   Future<void> refreshSessionStatus() async {
@@ -195,12 +183,12 @@ class HomeController extends GetxController {
   void _startPollingCheckInSession() {
     _statusPollingTimer?.cancel();
 
-    if (checkInStatus.value == 'waiting_for_payment') {
+    if (checkInStatus.value == 'pending_payment') {
       _statusPollingTimer = Timer.periodic(const Duration(seconds: 8), (
         timer,
       ) async {
         await refreshSessionStatus();
-        if (checkInStatus.value != 'waiting_for_payment') {
+        if (checkInStatus.value != 'pending_payment') {
           timer.cancel();
         }
       });
@@ -212,172 +200,232 @@ class HomeController extends GetxController {
     isProcessing.value = true;
 
     try {
-      await refreshSessionStatus();
-      // WEBVIEW PAYMENT
-      if (checkInStatus.value == 'waiting_for_payment') {
-        await retryPay();
-        final result = await Get.to(
-          () => SnapPaymentPage(snapToken: snapToken.value),
-        );
-        await _handleSnapPaymentResult(result);
-        return;
-      }
-      // CHECK-IN
-      final bool shouldCheckOut = checkInStatus.value == 'active';
-      if (!shouldCheckOut) {
-        // BIOMETRIC AUTHENTICATION
-        final bool canAuth = await requestBiometricForCheckIn();
-        if (!canAuth) return;
-        final res = await _authService.checkIn();
-        if (!_isApiSuccess(res)) {
-          final msg = res?['message'] ?? res?['error'] ?? 'Gagal check-in';
-          if (msg.toLowerCase().contains('waiting_for_payment') ||
-              msg.toLowerCase().contains('active')) {
-            await refreshSessionStatus();
-          } else {
-            AppNotifier.error(
-              'Gagal Check-In',
-              msg,
-            );
-            return;
-          }
-        }
-        // WAITING FOR PAYMENT
-        await refreshSessionStatus();
-        if (checkInStatus.value == 'waiting_for_payment') {
-          if (snapToken.value.isEmpty) {
-            await retryPay();
-          }
-          await Future.delayed(const Duration(milliseconds: 200));
-          final result = await Get.to(
-            () => SnapPaymentPage(snapToken: snapToken.value),
-          );
-          await _handleSnapPaymentResult(result);
-          return;
-        }
-        if (checkInStatus.value == 'active') {
-          AppNotifier.success(
-            'Check-In Berhasil',
-            'Sesi langsung aktif',
-          );
-        }
-        return;
-      }
-      // CHECK-OUT
-      final confirm = await AppNotifier.confirmDialog(
-        title: 'Konfirmasi Check-Out',
-        message: 'Apakah kamu yakin ingin mengakhiri sesi check-in ini?',
-        confirmText: 'Ya, Check-Out',
-        type: AppNoticeType.error,
-      );
-      if (!confirm) return;
-      final res = await _authService.checkout();
-      if (!_isApiSuccess(res)) {
-        final msg =
-            res?['message'] ?? res?['error'] ?? 'Check-out ditolak server';
-        AppNotifier.error('Gagal Check-Out', msg);
+      // Gunakan status lokal yang sudah di-sync oleh polling
+      // Tidak perlu refresh di sini agar swipe responsif dan tidak reset status
+      final status = checkInStatus.value;
+
+      // ─── LANJUT PEMBAYARAN ───────────────────────────────────────────────
+      if (status == 'pending_payment') {
+        await _doRetryPayment();
         return;
       }
 
-      // Reset lokal
-      isCheckedIn.value = false;
-      checkInStatus.value = 'expired';
-      snapToken.value = '';
-      statusText.value = 'Off';
+      // ─── CHECK-OUT ───────────────────────────────────────────────────────
+      if (status == 'standby') {
+        await _doCheckOut();
+        return;
+      }
 
-      AppNotifier.info(
-        'Check-Out Berhasil',
-        res?['message'] ?? 'Sesi telah diakhiri',
-      );
-      await refreshWithDelay();
+      // ─── CHECK-IN ────────────────────────────────────────────────────────
+      await _doCheckIn();
     } catch (e) {
-      // print('EXCEPTION toggleCheckInOut: $e');
-      // print(stack);
-      AppNotifier.error(
-        'Error',
-        'Gagal proses: $e',
-      );
+      AppNotifier.error('Error', 'Gagal proses: $e');
     } finally {
       isProcessing.value = false;
     }
+  }
+
+  Future<void> _doCheckIn() async {
+    // 1. Biometric wajib
+    final bool authenticated = await requestBiometricForCheckIn();
+    if (!authenticated) return;
+
+    // 2. Lokasi wajib
+    Position? pos = currentPosition.value;
+    if (pos == null) {
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        ).timeout(const Duration(seconds: 10));
+        currentPosition.value = pos;
+      } catch (_) {
+        AppNotifier.error(
+          'Lokasi Tidak Tersedia',
+          'Aktifkan GPS dan pastikan izin lokasi sudah diberikan, lalu coba lagi.',
+          duration: const Duration(seconds: 5),
+        );
+        return;
+      }
+    }
+
+    // 3. Request check-in
+    final res = await _authService.checkIn(
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+    );
+    print('[CHECKIN] res: $res');
+    if (!_isApiSuccess(res)) {
+      AppNotifier.error('Gagal Check-In', res?['message'] ?? 'Gagal check-in');
+      await refreshSessionStatus();
+      return;
+    }
+
+    // 4. Ambil redirectUrl dari response (handle dua format)
+    final payment = res?['payment'] as Map<String, dynamic>?;
+    final redirectUrl = res?['redirect_url'] as String?
+        ?? payment?['snapRedirectUrl'] as String?
+        ?? '';
+    print('[CHECKIN] redirectUrl: $redirectUrl');
+
+    // 5. Buka payment jika ada redirectUrl, atau refresh status
+    if (redirectUrl.isNotEmpty) {
+      await refreshSessionStatus();
+      final result = await Get.to(() => SnapPaymentPage(redirectUrl: redirectUrl));
+      await _handleSnapPaymentResult(result);
+    } else {
+      await refreshSessionStatus();
+      if (checkInStatus.value == 'on_duty' || checkInStatus.value == 'standby') {
+        AppNotifier.success('Check-In Berhasil', 'Sesi langsung aktif');
+      }
+    }
+  }
+
+  // Retry payment: panggil /driver/checkin lagi untuk dapat redirect_url baru
+  Future<void> _doRetryPayment() async {
+    Position? pos = currentPosition.value;
+    if (pos == null) {
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.low,
+        ).timeout(const Duration(seconds: 5));
+        currentPosition.value = pos;
+      } catch (_) {
+        AppNotifier.error('Lokasi Tidak Tersedia', 'Aktifkan GPS lalu coba lagi.');
+        return;
+      }
+    }
+
+    final res = await _authService.checkIn(
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+    );
+    print('[RETRY] res: $res');
+    if (!_isApiSuccess(res)) {
+      AppNotifier.error('Gagal', res?['message'] ?? 'Gagal mendapatkan halaman pembayaran');
+      return;
+    }
+
+    final paymentData = res?['payment'] as Map<String, dynamic>?;
+    final redirectUrl = res?['redirect_url'] as String?
+        ?? paymentData?['snapRedirectUrl'] as String?
+        ?? '';
+    print('[RETRY] redirectUrl: $redirectUrl');
+    if (redirectUrl.isEmpty) {
+      AppNotifier.warning('Pembayaran', 'URL pembayaran tidak ditemukan.');
+      return;
+    }
+
+    final result = await Get.to(() => SnapPaymentPage(redirectUrl: redirectUrl));
+    await _handleSnapPaymentResult(result);
+  }
+
+  /// Dipanggil dari SwipeButton Return saat status on_duty
+  Future<void> returnToStandby() async {
+    if (isProcessing.value) return;
+    isProcessing.value = true;
+    try {
+      await _doReturnToStandby();
+    } catch (e) {
+      AppNotifier.error('Error', 'Gagal proses: $e');
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
+  /// Dipanggil dari SwipeButton Check-Out saat status on_duty
+  Future<void> checkOutFromDuty() async {
+    if (isProcessing.value) return;
+    isProcessing.value = true;
+    try {
+      await _doCheckOut();
+    } catch (e) {
+      AppNotifier.error('Error', 'Gagal proses: $e');
+    } finally {
+      isProcessing.value = false;
+    }
+  }
+
+  Future<void> _doReturnToStandby() async {
+    // Ambil lokasi
+    Position? pos = currentPosition.value;
+    if (pos == null) {
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        ).timeout(const Duration(seconds: 10));
+        currentPosition.value = pos;
+      } catch (_) {
+        AppNotifier.error(
+          'Lokasi Tidak Tersedia',
+          'Aktifkan GPS dan pastikan izin lokasi sudah diberikan, lalu coba lagi.',
+          duration: const Duration(seconds: 5),
+        );
+        return;
+      }
+    }
+
+    final res = await _authService.returnToStandby(
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+    );
+
+    if (!_isApiSuccess(res)) {
+      AppNotifier.error('Gagal Return', res?['message'] ?? 'Gagal return to standby');
+      return;
+    }
+
+    isCheckedIn.value = true;
+    checkInStatus.value = 'standby';
+    statusText.value = 'Standby';
+
+    AppNotifier.success('Berhasil', res?['message'] ?? 'Kamu sudah kembali ke standby');
+    await refreshWithDelay();
+  }
+
+  Future<void> _doCheckOut() async {
+    final confirm = await AppNotifier.confirmDialog(
+      title: 'Konfirmasi Check-Out',
+      message: 'Apakah kamu yakin ingin mengakhiri sesi check-in ini?',
+      confirmText: 'Ya, Check-Out',
+      type: AppNoticeType.error,
+    );
+    if (!confirm) return;
+
+    final res = await _authService.checkout();
+    if (!_isApiSuccess(res)) {
+      AppNotifier.error('Gagal Check-Out', res?['message'] ?? res?['error'] ?? 'Check-out ditolak server');
+      return;
+    }
+
+    isCheckedIn.value = false;
+    checkInStatus.value = 'offline';
+    statusText.value = 'Off';
+
+    AppNotifier.info('Check-Out Berhasil', res?['message'] ?? 'Sesi telah diakhiri');
+    await refreshWithDelay();
   }
 
   bool _isApiSuccess(Map<String, dynamic>? res) {
     if (res == null) return false;
+    // API baru: ada field 'error' atau statusCode 4xx/5xx = gagal
+    if (res.containsKey('error')) return false;
+    final statusCode = res['statusCode'] as int?;
+    if (statusCode != null && statusCode >= 400) return false;
+    // API lama (fallback)
     final code = res['response_code']?.toString();
-    final statusLower = (res['status'] as String?)?.toLowerCase();
-    final successFlag = res['success'] == true;
-    final isSuccessPattern =
-        successFlag ||
-        statusLower == 'success' ||
-        code == '200' ||
-        code == '201';
-    final hasErrorIndication =
-        res.containsKey('error') ||
-        statusLower == 'error' ||
-        statusLower == 'failed' ||
-        (code != null && code.startsWith('4'));
-    if (isSuccessPattern && !hasErrorIndication) {
-      return true;
-    }
-    return false;
-  }
-
-  Future<void> retryPay() async {
-    // if (isProcessing.value) return;
-    isProcessing.value = true;
-    try {
-      final res = await _authService.pay();
-      await _handlePayResponse(res);
-    } catch (e) {
-      AppNotifier.error('Error', 'Gagal membuat pembayaran: $e');
-    } finally {
-      isProcessing.value = false;
-      // await refreshSessionStatus();
-    }
-  }
-
-  Future<void> _handlePayResponse(Map<String, dynamic>? res) async {
-    if (res == null) {
-      AppNotifier.error('Error', 'Tidak ada respon server');
-      return;
-    }
-
-    if (_isApiSuccess(res)) {
-      final data = res['data'] as Map<String, dynamic>? ?? res;
-      final token = (data['snap_token'] ?? data['token']) as String;
-      if (token.isNotEmpty) {
-        snapToken.value = token;
-        checkInStatus.value = 'waiting_for_payment';
-        print('Token berhasil: $token');
-        AppNotifier.success(
-          'Sukses',
-          'QRIS siap dibayar',
-        );
-      } else {
-        AppNotifier.warning('Peringatan', 'Token pembayaran kosong');
-      }
-    } else {
-      final msg = res['message'] ?? 'Gagal membuat pembayaran';
-      // print('Pay gagal: $msg');
-      AppNotifier.error('Gagal', msg);
-    }
+    if (code != null && code.startsWith('4')) return false;
+    if (res['success'] == false) return false;
+    return true;
   }
 
   Future<void> _handleSnapPaymentResult(dynamic result) async {
     if (result == 'success') {
       await refreshSessionStatus();
-      if (checkInStatus.value == 'active') {
-        AppNotifier.success(
-          'Pembayaran Berhasil',
-          'Pembayaran berhasil dan sesi check-in kamu sudah aktif.',
-        );
-      } else {
-        AppNotifier.success(
-          'Pembayaran Berhasil',
-          'Transaksi sukses. Status sesi sedang diperbarui otomatis.',
-        );
-      }
+      AppNotifier.success(
+        'Pembayaran Berhasil',
+        'Sesi kerja kamu sudah aktif.',
+        duration: const Duration(seconds: 5),
+      );
       return;
     }
     if (result == 'pending') {
@@ -392,6 +440,7 @@ class HomeController extends GetxController {
         'Pembayaran Gagal',
         'Transaksi tidak berhasil. Silakan coba lagi.',
       );
+      await refreshSessionStatus();
       return;
     }
     if (result == 'closed') {
@@ -399,6 +448,7 @@ class HomeController extends GetxController {
         'Pembayaran Dibatalkan',
         'Kamu menutup halaman pembayaran sebelum selesai.',
       );
+      await refreshSessionStatus();
     }
   }
 
@@ -423,25 +473,22 @@ class HomeController extends GetxController {
   Future<bool> requestBiometricForCheckIn() async {
     try {
       final bool authenticated = await biometricService.authenticate(
-        reason: 'Konfirmasi check-in',
+        reason: 'Konfirmasi identitas untuk check-in',
       );
-      if (authenticated) {
-        return true;
-      } else {
+      if (!authenticated) {
         AppNotifier.warning(
           'Verifikasi Gagal',
-          'Autentikasi biometrik dibutuhkan untuk check-in',
+          'Autentikasi biometrik dibutuhkan untuk check-in.',
           duration: const Duration(seconds: 4),
         );
-        return false;
       }
+      return authenticated;
     } catch (e) {
       AppNotifier.error(
-        'Error Biometrik',
+        'Biometrik Error',
         'Gagal memverifikasi identitas: ${e.toString().split('\n').first}',
         duration: const Duration(seconds: 5),
       );
-      // print('Biometric error: $e');
       return false;
     }
   }

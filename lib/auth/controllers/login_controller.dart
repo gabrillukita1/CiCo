@@ -27,11 +27,7 @@ class LoginController extends GetxController {
 
     if (result != null) {
       TextInput.finishAutofillContext();
-      final user = result['user'];
-      Get.offAllNamed(
-        '/home',
-        arguments: {'name': user['name'], 'email': user['email']},
-      );
+      Get.offAllNamed('/home');
     }
   }
 

@@ -1,12 +1,17 @@
-import 'package:cico_project/core/config/app_config.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:cico_project/core/widgets/app_notifier.dart';
+import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:get/get.dart';
 
 class SnapPaymentPage extends StatefulWidget {
-  final String snapToken;
+  final String redirectUrl;
 
-  const SnapPaymentPage({super.key, required this.snapToken});
+  const SnapPaymentPage({super.key, required this.redirectUrl});
 
   @override
   State<SnapPaymentPage> createState() => _SnapPaymentPageState();
@@ -14,7 +19,7 @@ class SnapPaymentPage extends StatefulWidget {
 
 class _SnapPaymentPageState extends State<SnapPaymentPage> {
   late final WebViewController _controller;
-  bool _snapCalled = false;
+  bool _isDownloading = false;
 
   @override
   void initState() {
@@ -25,62 +30,181 @@ class _SnapPaymentPageState extends State<SnapPaymentPage> {
       ..addJavaScriptChannel(
         'SnapChannel',
         onMessageReceived: (message) {
-          final status = message.message;
-          Get.back(result: status);
+          Get.back(result: message.message);
+        },
+      )
+      ..addJavaScriptChannel(
+        'QrisChannel',
+        onMessageReceived: (message) async {
+          await _downloadQrisFromUrl(message.message);
         },
       )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (url) {
-            if (!_snapCalled) {
-              _snapCalled = true;
-              _callSnap();
+            if (url.contains('midtrans.com')) {
+              _injectInterceptor();
             }
+          },
+          onNavigationRequest: (request) {
+            final url = request.url;
+            // Cegah blob URL navigation (download)
+            if (url.startsWith('blob:')) {
+              _extractQrisUrl();
+              return NavigationDecision.prevent;
+            }
+            // Deteksi hasil payment dari finish redirect URL
+            if (!url.contains('midtrans.com')) {
+              _detectPaymentResult(url);
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
           },
         ),
       )
-      ..loadHtmlString(_htmlSnap(widget.snapToken));
+      ..loadRequest(Uri.parse(widget.redirectUrl));
   }
 
-  void _callSnap() {
+  /// Inject JS ke halaman Snap setelah load.
+  /// Snap UI sekarang adalah halaman utama (bukan iframe),
+  /// sehingga kita bisa akses DOM-nya langsung.
+  void _injectInterceptor() {
     _controller.runJavaScript("""
-      snap.pay('${widget.snapToken}', {
-        onSuccess: function(result){
-          SnapChannel.postMessage('success');
-        },
-        onPending: function(result){
-          SnapChannel.postMessage('pending');
-        },
-        onError: function(result){
-          SnapChannel.postMessage('failed');
-        },
-        onClose: function(){
-          SnapChannel.postMessage('closed');
-        }
-      });
+      (function() {
+        // Intercept tombol "Download QRIS"
+        document.addEventListener('click', function(e) {
+          var target = e.target;
+          while (target && target !== document) {
+            if (target.classList && target.classList.contains('qris-download-button')) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              var img = document.querySelector('img.qr-image');
+              QrisChannel.postMessage(img && img.src ? img.src : 'NO_QR');
+              return;
+            }
+            // Intercept tombol close
+            if (target.classList && target.classList.contains('close-snap-button')) {
+              SnapChannel.postMessage('closed');
+              return;
+            }
+            target = target.parentElement;
+          }
+        }, true);
+      })();
     """);
   }
 
-  String _htmlSnap(String token) {
-    return '''
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="${AppConfig.midtransSnapUrl}"
-          data-client-key="${AppConfig.midtransClientKey}"></script>
-</head>
-<body>
-</body>
-</html>
-''';
+  /// Fallback: extract QR image URL via JS jika blob navigation tertangkap
+  void _extractQrisUrl() {
+    _controller.runJavaScript("""
+      (function() {
+        var img = document.querySelector('img.qr-image');
+        QrisChannel.postMessage(img && img.src ? img.src : 'NO_QR');
+      })();
+    """);
+  }
+
+  Future<void> _downloadQrisFromUrl(String url) async {
+    if (url == 'NO_QR' || !url.startsWith('http')) {
+      AppNotifier.error('Gagal', 'Gambar QRIS tidak ditemukan.');
+      return;
+    }
+    setState(() => _isDownloading = true);
+    try {
+
+      // Dio dengan SSL bypass untuk kompatibilitas sandbox Midtrans
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+      ));
+      (dio.httpClientAdapter as DefaultHttpClientAdapter)
+          .onHttpClientCreate = (client) {
+        client.badCertificateCallback = (cert, host, port) => true;
+        return client;
+      };
+
+      final response = await dio.get<Uint8List>(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final bytes = response.data;
+      if (bytes == null || bytes.isEmpty) {
+        AppNotifier.error('Gagal', 'Data gambar kosong.');
+        return;
+      }
+
+      final hasAccess = await Gal.hasAccess(toAlbum: false);
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess(toAlbum: false);
+        if (!granted) {
+          AppNotifier.error('Izin Ditolak', 'Berikan izin penyimpanan untuk menyimpan QRIS.');
+          return;
+        }
+      }
+
+      await Gal.putImageBytes(
+        bytes,
+        name: 'QRIS_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      AppNotifier.success('Tersimpan', 'QRIS berhasil disimpan ke galeri.');
+    } on DioException catch (e) {
+      AppNotifier.error('Gagal', 'Gagal mengunduh QRIS (${e.response?.statusCode ?? 'no response'})');
+    } on GalException catch (e) {
+      AppNotifier.error('Gagal', 'Gagal menyimpan ke galeri: ${e.type.message}');
+    } catch (e) {
+      AppNotifier.error('Error', 'Gagal: $e');
+    } finally {
+      setState(() => _isDownloading = false);
+    }
+  }
+
+  void _detectPaymentResult(String url) {
+    final uri = Uri.tryParse(url);
+    final status = uri?.queryParameters['transaction_status'] ?? '';
+    final result = uri?.queryParameters['result'] ?? '';
+
+    if (status == 'settlement' || status == 'capture' || result == 'success') {
+      Get.back(result: 'success');
+    } else if (status == 'pending') {
+      Get.back(result: 'pending');
+    } else if (status == 'deny' || status == 'failure' || result == 'failure') {
+      Get.back(result: 'failed');
+    } else {
+      Get.back(result: 'closed');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Pembayaran')),
-      body: WebViewWidget(controller: _controller),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isDownloading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 16),
+                    Text(
+                      'Menyimpan QRIS...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

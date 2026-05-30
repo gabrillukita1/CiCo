@@ -1,4 +1,5 @@
 import 'package:cico_project/core/style/app_colors.dart';
+import 'package:cico_project/core/utils/date_utils.dart' as tz;
 import 'package:cico_project/history/controllers/history_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -673,8 +674,8 @@ class _SessionCard extends StatelessWidget {
     String duration = '';
     if (showDuration && checkinAt != null && checkoutAt != null) {
       try {
-        final ci = DateTime.parse(checkinAt.toString()).toLocal();
-        final co = DateTime.parse(checkoutAt.toString()).toLocal();
+        final ci = tz.toJakarta(checkinAt)!;
+        final co = tz.toJakarta(checkoutAt)!;
         final diff = co.difference(ci);
         final h = diff.inHours;
         final m = diff.inMinutes % 60;
@@ -719,43 +720,15 @@ class _SessionCard extends StatelessWidget {
 
   String? _formatDateTime(dynamic value) {
     if (value == null) return null;
-    try {
-      final dt = DateTime.parse(value.toString()).toLocal();
-      return DateFormat('dd MMM yyyy, HH:mm').format(dt);
-    } catch (_) {
-      return value.toString();
-    }
+    final s = tz.formatDateTime(value);
+    return s == '-' ? null : s;
   }
 
-  String _formatTime(dynamic value) {
-    if (value == null) return '—';
-    try {
-      final dt = DateTime.parse(value.toString()).toLocal();
-      return DateFormat('HH:mm').format(dt);
-    } catch (_) {
-      return '—';
-    }
-  }
+  String _formatTime(dynamic value) => tz.formatTime(value, fallback: '—');
 
-  String _formatDate(dynamic value) {
-    if (value == null) return '';
-    try {
-      final dt = DateTime.parse(value.toString()).toLocal();
-      return DateFormat('dd MMM yyyy').format(dt);
-    } catch (_) {
-      return '';
-    }
-  }
+  String _formatDate(dynamic value) => tz.formatDate(value);
 
-  String _formatFullDate(dynamic value) {
-    if (value == null) return '—';
-    try {
-      final dt = DateTime.parse(value.toString()).toLocal();
-      return DateFormat('EEE, dd MMM yyyy').format(dt);
-    } catch (_) {
-      return '—';
-    }
-  }
+  String _formatFullDate(dynamic value) => tz.formatFullDate(value);
 
   String _formatCurrency(dynamic amount) {
     if (amount == null) return 'Rp 0';
