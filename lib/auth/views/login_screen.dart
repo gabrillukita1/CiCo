@@ -89,22 +89,37 @@ class LoginScreen extends GetView<LoginController> {
           _buildTextField(
             label: 'Email Address',
             hint: 'Enter your work email',
-            controller: controller.emailController,
+            textController: controller.emailController,
             icon: Icons.alternate_email_rounded,
             keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
             autofillHints: [AutofillHints.email],
-            onChanged: (value) => controller.email.value = value,
+            onChanged: (v) => controller.email.value = v,
           ),
           const SizedBox(height: 24),
-          _buildTextField(
+          // Password field — reactive untuk toggle show/hide
+          Obx(() => _buildTextField(
             label: 'Password',
             hint: '••••••••',
-            controller: controller.passwordController,
+            textController: controller.passwordController,
             icon: Icons.lock_outline_rounded,
-            obscureText: true,
+            obscureText: controller.obscurePassword.value,
+            textInputAction: TextInputAction.done,
             autofillHints: [AutofillHints.password],
-            onChanged: (value) => controller.password.value = value,
-          ),
+            onChanged: (v) => controller.password.value = v,
+            onSubmitted: (_) => controller.login(),
+            suffixIcon: IconButton(
+              icon: Icon(
+                controller.obscurePassword.value
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+                size: 20,
+                color: AppColors.textSub,
+              ),
+              onPressed: () =>
+                  controller.obscurePassword.value = !controller.obscurePassword.value,
+            ),
+          )),
         ],
       ),
     );
@@ -113,12 +128,15 @@ class LoginScreen extends GetView<LoginController> {
   Widget _buildTextField({
     required String label,
     required String hint,
-    required TextEditingController controller,
+    required TextEditingController textController,
     required IconData icon,
     bool obscureText = false,
     TextInputType? keyboardType,
+    TextInputAction? textInputAction,
     Iterable<String>? autofillHints,
     Function(String)? onChanged,
+    Function(String)? onSubmitted,
+    Widget? suffixIcon,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,11 +151,13 @@ class LoginScreen extends GetView<LoginController> {
         ),
         const SizedBox(height: 10),
         TextFormField(
-          controller: controller,
+          controller: textController,
           obscureText: obscureText,
           keyboardType: keyboardType,
+          textInputAction: textInputAction,
           autofillHints: autofillHints,
           onChanged: onChanged,
+          onFieldSubmitted: onSubmitted,
           cursorColor: AppColors.primary,
           decoration: InputDecoration(
             hintText: hint,
@@ -147,6 +167,7 @@ class LoginScreen extends GetView<LoginController> {
               size: 20,
               color: AppColors.primary.withValues(alpha: 0.7),
             ),
+            suffixIcon: suffixIcon,
             filled: true,
             fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(
@@ -202,13 +223,13 @@ class LoginScreen extends GetView<LoginController> {
 
   Widget _buildFooter() {
     return Center(
-      child: Text(
-        "v1.0.0",
+      child: Obx(() => Text(
+        controller.appVersion.value.isEmpty ? '' : controller.appVersion.value,
         style: TextStyle(
           color: AppColors.textSub.withValues(alpha: 0.5),
           fontSize: 12,
         ),
-      ),
+      )),
     );
   }
 }

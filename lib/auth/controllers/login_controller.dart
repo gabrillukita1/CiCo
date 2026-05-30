@@ -2,6 +2,7 @@ import 'package:cico_project/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../core/widgets/app_notifier.dart';
 
 import '../services/auth_service.dart';
@@ -12,9 +13,26 @@ class LoginController extends GetxController {
   var isLoading = false.obs;
   var email = ''.obs;
   var password = ''.obs;
+  var obscurePassword = true.obs;
+  var appVersion = ''.obs;
 
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      appVersion.value = 'v${info.version}';
+    } catch (_) {
+      appVersion.value = 'v1.0.0';
+    }
+  }
 
   @override
   void onClose() {

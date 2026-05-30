@@ -117,7 +117,13 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     final previousStatus = checkInStatus.value;
     final dashboard = await _authService.getDashboard();
     if (dashboard == null) {
-      _resetToIdle();
+      // Jika belum pernah load (first launch), reset ke idle
+      // Jika sudah ada status → pertahankan, mungkin hanya network error sementara
+      if (checkInStatus.value.isEmpty) {
+        _resetToIdle();
+      } else {
+        AppNotifier.warning('Koneksi', 'Gagal memuat status. Menampilkan data terakhir.');
+      }
       return;
     }
 
@@ -276,7 +282,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       latitude: pos.latitude,
       longitude: pos.longitude,
     );
-    if (!_isApiSuccess(res)) {
+    if (!AuthService.isSuccess(res)) {
       AppNotifier.error('Gagal Check-In', res?['message'] ?? 'Gagal check-in');
       await refreshSessionStatus();
       return;
@@ -313,7 +319,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       latitude: pos.latitude,
       longitude: pos.longitude,
     );
-    if (!_isApiSuccess(res)) {
+    if (!AuthService.isSuccess(res)) {
       AppNotifier.error('Gagal', res?['message'] ?? 'Gagal mendapatkan halaman pembayaran');
       return;
     }
@@ -366,7 +372,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       longitude: pos.longitude,
     );
 
-    if (!_isApiSuccess(res)) {
+    if (!AuthService.isSuccess(res)) {
       AppNotifier.error('Gagal Return', res?['message'] ?? 'Gagal return to standby');
       return;
     }
@@ -386,7 +392,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     if (!confirm) return;
 
     final res = await _authService.checkout();
-    if (!_isApiSuccess(res)) {
+    if (!AuthService.isSuccess(res)) {
       AppNotifier.error('Gagal Check-Out', res?['message'] ?? res?['error'] ?? 'Check-out ditolak server');
       return;
     }
@@ -394,19 +400,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     checkInStatus.value = 'offline';
     AppNotifier.info('Check-Out Berhasil', res?['message'] ?? 'Sesi telah diakhiri');
     await refreshWithDelay();
-  }
-
-  bool _isApiSuccess(Map<String, dynamic>? res) {
-    if (res == null) return false;
-    // API baru: error == true atau statusCode 4xx/5xx = gagal
-    if (res['error'] == true) return false;
-    final statusCode = res['statusCode'] as int?;
-    if (statusCode != null && statusCode >= 400) return false;
-    // API lama (fallback)
-    final code = res['response_code']?.toString();
-    if (code != null && code.startsWith('4')) return false;
-    if (res['success'] == false) return false;
-    return true;
   }
 
   Future<void> _handleSnapPaymentResult(dynamic result) async {

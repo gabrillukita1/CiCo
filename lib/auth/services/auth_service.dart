@@ -198,6 +198,19 @@ class AuthService {
     }
   }
 
+  /// Cek apakah response API dianggap sukses.
+  /// Static agar bisa dipakai dari controller manapun tanpa inject service.
+  static bool isSuccess(Map<String, dynamic>? res) {
+    if (res == null) return false;
+    if (res['error'] == true) return false;
+    final statusCode = res['statusCode'] as int?;
+    if (statusCode != null && statusCode >= 400) return false;
+    final code = res['response_code']?.toString();
+    if (code != null && code.startsWith('4')) return false;
+    if (res['success'] == false) return false;
+    return true;
+  }
+
   // LOGOUT (API + clear local storage)
   Future<bool> performLogout() async {
     try {

@@ -18,6 +18,7 @@ class DriverStatusInfo {
 class StatusHelper {
   StatusHelper._();
 
+  /// Status driver aktif (HomeScreen, ProfileScreen)
   static DriverStatusInfo of(String status) {
     switch (status) {
       case 'on_duty':
@@ -49,6 +50,29 @@ class StatusHelper {
           label: 'Offline',
           displayText: 'OFFLINE',
         );
+    }
+  }
+
+  /// Status sesi di History (berbeda dari status driver aktif)
+  static DriverStatusInfo ofSession(String status) {
+    switch (status) {
+      case 'active':
+        return const DriverStatusInfo(
+          color: AppColors.active,
+          icon: Icons.radio_button_checked_rounded,
+          label: 'Active',
+          displayText: 'ACTIVE',
+        );
+      case 'expired':
+        return const DriverStatusInfo(
+          color: AppColors.textSub,
+          icon: Icons.cancel_outlined,
+          label: 'Expired',
+          displayText: 'EXPIRED',
+        );
+      default:
+        // pending_payment, dll — gunakan mapping driver
+        return of(status);
     }
   }
 }

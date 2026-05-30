@@ -1,5 +1,6 @@
 import 'package:cico_project/core/style/app_colors.dart';
 import 'package:cico_project/core/utils/date_utils.dart' as tz;
+import 'package:cico_project/core/utils/status_helper.dart';
 import 'package:cico_project/history/controllers/history_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -73,12 +74,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
           // ── List ──────────────────────────────────────────
           Expanded(
             child: Obx(() {
-              if (controller.isLoading.value) {
+              // Baca semua observables di atas agar Obx track semuanya sekaligus
+              final isLoading = controller.isLoading.value;
+              final sessions = controller.sessionList;
+              final hasMore = controller.hasMore.value;
+              final isLoadingMore = controller.isLoadingMore.value;
+
+              if (isLoading) {
                 return const Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 );
               }
-              if (controller.sessionList.isEmpty) {
+              if (sessions.isEmpty) {
                 return Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -108,26 +115,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 child: ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  itemCount:
-                      controller.sessionList.length +
-                      (controller.hasMore.value ? 1 : 0),
+                  itemCount: sessions.length + (hasMore ? 1 : 0),
                   itemBuilder: (_, i) {
-                    if (i == controller.sessionList.length) {
-                      return Obx(
-                        () => controller.isLoadingMore.value
-                            ? const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.primary,
-                                    strokeWidth: 2,
-                                  ),
+                    if (i == sessions.length) {
+                      return isLoadingMore
+                          ? const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.primary,
+                                  strokeWidth: 2,
                                 ),
-                              )
-                            : const SizedBox.shrink(),
-                      );
+                              ),
+                            )
+                          : const SizedBox.shrink();
                     }
-                    return _SessionCard(session: controller.sessionList[i]);
+                    return _SessionCard(session: sessions[i]);
                   },
                 ),
               );
@@ -279,27 +282,10 @@ class _SessionCard extends StatelessWidget {
         payStatus != 'success' &&
         payStatus != 'pending';
 
-    final Color accentColor;
-    final String statusLabel;
-    final IconData statusIcon;
-
-    switch (status) {
-      case 'active':
-        accentColor = AppColors.active;
-        statusLabel = 'Active';
-        statusIcon = Icons.radio_button_checked_rounded;
-        break;
-      case 'pending_payment':
-        accentColor = AppColors.waiting;
-        statusLabel = 'Pending Payment';
-        statusIcon = Icons.schedule_rounded;
-        break;
-      case 'expired':
-      default:
-        accentColor = AppColors.textSub;
-        statusLabel = 'Expired';
-        statusIcon = Icons.cancel_outlined;
-    }
+    final info = StatusHelper.ofSession(status);
+    final accentColor = info.color;
+    final statusLabel = info.label;
+    final statusIcon = info.icon;
 
     return Opacity(
       opacity: isFaded ? 0.45 : 1.0,
@@ -372,7 +358,7 @@ class _SessionCard extends StatelessWidget {
           // ── Dispatch ────────────────────────────────────
           if (dispatches.isNotEmpty) ...[
             _buildDivider(),
-            _buildDispatchExpansion(dispatches),
+            _buildDispatchExpansion(dispatches, context),
           ],
 
           const SizedBox(height: 4),
@@ -577,9 +563,9 @@ class _SessionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDispatchExpansion(List<Map<String, dynamic>> dispatches) {
+  Widget _buildDispatchExpansion(List<Map<String, dynamic>> dispatches, BuildContext context) {
     return Theme(
-      data: ThemeData().copyWith(dividerColor: Colors.transparent),
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),

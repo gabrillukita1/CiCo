@@ -220,6 +220,7 @@ class HomeScreen extends GetView<HomeController> {
     ));
   }
 
+  /// Dipanggil dari dalam Obx di getHeaderSection() — reactive terhadap userName.
   Widget _buildAvatar() {
     final name = controller.userName.value;
     final initials = name.trim().isEmpty

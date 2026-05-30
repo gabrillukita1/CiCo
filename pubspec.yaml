@@ -27,6 +27,7 @@ dependencies:
   webview_flutter: ^4.7.0
   intl: ^0.19.0
   gal: ^2.3.0
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:
@@ -38,7 +39,7 @@ flutter:
 
   # Assets
   assets:
-    - assets\images\logo.png
-    - assets\images\success_icon.png
-    - assets\images\reject_icon.png
-    - assets\images\waiting_for_payment.png
+    - assets/images/logo.png
+    - assets/images/success_icon.png
+    - assets/images/reject_icon.png
+    - assets/images/waiting_for_payment.png

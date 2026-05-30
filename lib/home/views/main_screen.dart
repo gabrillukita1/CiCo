@@ -1,8 +1,10 @@
 import 'package:cico_project/core/style/app_colors.dart';
+import 'package:cico_project/history/controllers/history_controller.dart';
 import 'package:cico_project/history/views/history_screen.dart';
 import 'package:cico_project/home/views/home_screen.dart';
 import 'package:cico_project/profile/views/profile_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -20,6 +22,14 @@ class _MainScreenState extends State<MainScreen> {
     ProfileScreen(),
   ];
 
+  void _onTabTap(int index) {
+    // Refresh History saat user berpindah ke tab tersebut
+    if (index == 1 && _currentIndex != 1) {
+      Get.find<HistoryController>().loadHistory();
+    }
+    setState(() => _currentIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,7 +43,7 @@ class _MainScreenState extends State<MainScreen> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          onTap: _onTabTap,
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.textSub,
           backgroundColor: Colors.white,
