@@ -91,22 +91,29 @@ class HistoryController extends GetxController {
     isLoadingMore.value = true;
     _currentPage++;
 
-    final range = _activeDateRange;
-    final res = await _authService.getCheckinHistory(
-      page: _currentPage,
-      limit: _limit,
-      startDate: range?.start,
-      endDate: range?.end,
-    );
-    if (res != null) {
-      final data = res['data'] as List? ?? [];
-      sessionList.addAll(data.cast<Map<String, dynamic>>());
-      final totalPages = res['totalPages'] as int? ?? 1;
-      hasMore.value = _currentPage < totalPages;
-    } else {
+    try {
+      final range = _activeDateRange;
+      final res = await _authService.getCheckinHistory(
+        page: _currentPage,
+        limit: _limit,
+        startDate: range?.start,
+        endDate: range?.end,
+      );
+      if (res != null) {
+        final data = res['data'] as List? ?? [];
+        sessionList.addAll(data.cast<Map<String, dynamic>>());
+        final totalPages = res['totalPages'] as int? ?? 1;
+        hasMore.value = _currentPage < totalPages;
+      } else {
+        _currentPage--;
+        AppNotifier.error('Gagal', 'Tidak dapat memuat data selanjutnya.');
+      }
+    } catch (e) {
       _currentPage--;
+      AppNotifier.error('Error', 'Terjadi kesalahan: $e');
+    } finally {
+      isLoadingMore.value = false;
     }
-    isLoadingMore.value = false;
   }
 
   Future<void> setFilter(DateFilter filter, {DateTimeRange? range}) async {

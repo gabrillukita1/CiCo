@@ -1,3 +1,4 @@
+import 'package:cico_project/auth/services/auth_service.dart';
 import 'package:cico_project/core/style/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -173,6 +174,23 @@ class AppNotifier {
     );
 
     return result ?? false;
+  }
+
+  /// Dialog konfirmasi logout + jalankan logout + navigasi ke /login.
+  /// Taruh di AppNotifier agar AuthService tetap bebas dari UI/navigasi logic.
+  static Future<void> confirmAndLogout() async {
+    final confirm = await confirmDialog(
+      title: 'Konfirmasi Logout',
+      message: 'Apakah kamu yakin ingin logout dari aplikasi?',
+      confirmText: 'Ya, Logout',
+      type: AppNoticeType.error,
+    );
+    if (!confirm) return;
+    try {
+      await Get.find<AuthService>().performLogout();
+    } finally {
+      Get.offAllNamed('/login');
+    }
   }
 
   static _AppNoticeStyle _styleFor(AppNoticeType type) {

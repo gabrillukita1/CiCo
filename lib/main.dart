@@ -9,7 +9,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
 
-  final authService = AuthService();
+  // Singleton AuthService — satu instance Dio untuk seluruh app lifecycle
+  final authService = Get.put<AuthService>(AuthService(), permanent: true);
   final isValid = await authService.isTokenValid();
 
   runApp(CicoApp(

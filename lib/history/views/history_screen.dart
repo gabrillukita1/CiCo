@@ -13,20 +13,40 @@ const _filters = [
   (label: 'This Month', filter: DateFilter.thisMonth),
 ];
 
-class HistoryScreen extends GetView<HistoryController> {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  final HistoryController controller = Get.find<HistoryController>();
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      controller.loadMore();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final scrollController = ScrollController();
-
-    scrollController.addListener(() {
-      if (scrollController.position.pixels >=
-          scrollController.position.maxScrollExtent - 200) {
-        controller.loadMore();
-      }
-    });
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -86,7 +106,7 @@ class HistoryScreen extends GetView<HistoryController> {
                 color: AppColors.primary,
                 onRefresh: controller.loadHistory,
                 child: ListView.builder(
-                  controller: scrollController,
+                  controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   itemCount:
                       controller.sessionList.length +

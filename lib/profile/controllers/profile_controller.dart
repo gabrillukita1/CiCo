@@ -29,5 +29,5 @@ class ProfileController extends GetxController {
     }
   }
 
-  Future<void> logout() => _authService.confirmAndLogout();
+  Future<void> logout() => AppNotifier.confirmAndLogout();
 }

@@ -222,21 +222,6 @@ class AuthService {
     return true;
   }
 
-  // CONFIRM & LOGOUT — satu tempat untuk dialog + navigasi
-  Future<void> confirmAndLogout() async {
-    final confirm = await AppNotifier.confirmDialog(
-      title: 'Konfirmasi Logout',
-      message: 'Apakah kamu yakin ingin logout dari aplikasi?',
-      confirmText: 'Ya, Logout',
-      type: AppNoticeType.error,
-    );
-    if (!confirm) return;
-    try {
-      await performLogout();
-    } finally {
-      Get.offAllNamed('/login');
-    }
-  }
 
   // GET PROFILE
   Future<Map<String, dynamic>?> getProfile() async {

@@ -16,20 +16,17 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   final isInitializing = true.obs;
   final userName = ''.obs;
-  final userEmail = ''.obs;
   final vehicleNumber = ''.obs;
 
   final startTime = ''.obs;
   final endTime = ''.obs;
 
   final checkInStatus = ''.obs;
-  final isCheckedIn = false.obs;
-  final statusText = 'Off'.obs;
   final isProcessing = false.obs;
 
   final remainingMinutes = Rxn<int>();
 
-  final biometricService = BiometricService();
+  final biometricService = Get.find<BiometricService>();
 
   final currentPosition = Rxn<Position>();
   final currentAddress = ''.obs;
@@ -142,16 +139,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
     switch (serverStatus) {
       case 'on_duty':
-        isCheckedIn.value = true;
-        statusText.value = 'On Duty';
-        break;
       case 'standby':
-        isCheckedIn.value = true;
-        statusText.value = 'Standby';
         break;
       case 'pending_payment':
-        isCheckedIn.value = false;
-        statusText.value = 'Pending Payment';
         _startPollingCheckInSession();
         break;
       case 'offline':
@@ -184,8 +174,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   void _resetToIdle() {
-    isCheckedIn.value = false;
-    statusText.value = 'Off';
     checkInStatus.value = 'offline';
     startTime.value = '--:--';
     endTime.value = '--:--';
@@ -395,10 +383,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       return;
     }
 
-    isCheckedIn.value = true;
     checkInStatus.value = 'standby';
-    statusText.value = 'Standby';
-
     AppNotifier.success('Berhasil', res?['message'] ?? 'Kamu sudah kembali ke standby');
     await refreshWithDelay();
   }
@@ -418,10 +403,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       return;
     }
 
-    isCheckedIn.value = false;
     checkInStatus.value = 'offline';
-    statusText.value = 'Off';
-
     AppNotifier.info('Check-Out Berhasil', res?['message'] ?? 'Sesi telah diakhiri');
     await refreshWithDelay();
   }
@@ -473,7 +455,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> logout() => _authService.confirmAndLogout();
+  Future<void> logout() => AppNotifier.confirmAndLogout();
 
   Future<bool> requestBiometricForCheckIn() async {
     try {
