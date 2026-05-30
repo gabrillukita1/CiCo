@@ -138,7 +138,7 @@ class HomeScreen extends GetView<HomeController> {
 
         switch (status) {
           case 'standby':
-            thumbColor = AppColors.inactive;
+            thumbColor = Colors.blueGrey.shade600;
             text = 'Swipe untuk Check-Out';
             break;
           case 'pending_payment':

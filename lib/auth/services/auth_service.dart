@@ -36,7 +36,6 @@ class AuthService {
 
     _dio.interceptors.add(
       InterceptorsWrapper(
-        // Otomatis tambah Authorization header di setiap request
         onRequest: (options, handler) {
           final token = getToken();
           if (token != null) {
@@ -44,15 +43,11 @@ class AuthService {
           }
           return handler.next(options);
         },
-        // Tangkap 401, coba refresh token, retry request
         onError: (DioException error, handler) async {
           final path = error.requestOptions.path;
           final isRetry = error.requestOptions.extra['isRetry'] == true;
 
-          // Skip: endpoint login/refresh atau sudah pernah retry
-          if (path == '/auth/login' ||
-              path == '/auth/refresh' ||
-              isRetry) {
+          if (path == '/auth/login' || path == '/auth/refresh' || isRetry) {
             return handler.next(error);
           }
 
@@ -62,7 +57,6 @@ class AuthService {
             _isRefreshing = false;
 
             if (refreshed) {
-              // Retry request asal dengan token baru
               error.requestOptions.headers['Authorization'] =
                   'Bearer ${getToken()}';
               error.requestOptions.extra['isRetry'] = true;
@@ -73,13 +67,10 @@ class AuthService {
                 return handler.next(e);
               }
             } else {
-              // Refresh gagal → logout
               await logoutLocal();
               try {
                 Get.offAllNamed(AppRoutes.login);
-              } catch (_) {
-                // App belum terinisialisasi (dipanggil saat startup)
-              }
+              } catch (_) {}
             }
           }
 
@@ -89,28 +80,52 @@ class AuthService {
     );
   }
 
-  // Simpan token
-  Future<void> saveToken(String token) async {
-    await _storage.write('access_token', token);
-  }
+  // ─── Token storage ────────────────────────────────────────────────────────
 
-  // Ambil token
-  String? getToken() {
-    return _storage.read('access_token');
-  }
+  Future<void> saveToken(String token) async =>
+      _storage.write('access_token', token);
 
-  // Ambil refresh token
-  String? getRefreshToken() {
-    return _storage.read('refresh_token');
-  }
+  String? getToken() => _storage.read('access_token');
 
-  // Hapus token
+  String? getRefreshToken() => _storage.read('refresh_token');
+
   Future<void> logoutLocal() async {
     await _storage.remove('access_token');
     await _storage.remove('refresh_token');
   }
 
+  // ─── Static helpers ───────────────────────────────────────────────────────
+
+  /// Response format baru: { success: bool, statusCode?: int, message?: String|List }
+  static bool isSuccess(Map<String, dynamic>? res) {
+    if (res == null) return false;
+    if (res.containsKey('success')) return res['success'] == true;
+    // Legacy fallback
+    if (res['error'] == true) return false;
+    final statusCode = res['statusCode'] as int?;
+    if (statusCode != null && statusCode >= 400) return false;
+    return true;
+  }
+
+  /// Ekstrak message dari response — handle String maupun List (validation errors).
+  static String extractMessage(dynamic message, {String fallback = 'Terjadi kesalahan'}) {
+    if (message == null) return fallback;
+    if (message is String) return message;
+    if (message is List) return message.whereType<String>().join(', ');
+    return fallback;
+  }
+
+  /// Buat error map standar dari DioException.
+  static Map<String, dynamic> _errorFrom(DioException e, String fallback) => {
+    'success': false,
+    'statusCode': e.response?.statusCode,
+    'message': extractMessage(e.response?.data?['message'], fallback: fallback),
+  };
+
+  // ─── Auth ─────────────────────────────────────────────────────────────────
+
   // LOGIN
+  // Response: { success: true, data: { accessToken, refreshToken, user } }
   Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
       final response = await _dio.post(
@@ -118,19 +133,15 @@ class AuthService {
         data: {'email': email, 'password': password},
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final token = response.data['accessToken'] as String?;
-        final refreshToken = response.data['refreshToken'] as String?;
-        final user = response.data['user'] as Map<String, dynamic>;
+      final data = response.data['data'] as Map<String, dynamic>;
+      final token = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
+      final user = data['user'] as Map<String, dynamic>;
 
-        if (token != null) {
-          await saveToken(token);
-        }
-        if (refreshToken != null) {
-          await _storage.write('refresh_token', refreshToken);
-        }
-        return {'user': user, 'token': token};
-      }
+      if (token != null) await saveToken(token);
+      if (refreshToken != null) await _storage.write('refresh_token', refreshToken);
+
+      return {'user': user, 'token': token};
     } on DioException catch (e) {
       String message = 'Login gagal. Periksa koneksi internet.';
 
@@ -138,28 +149,24 @@ class AuthService {
           e.type == DioExceptionType.receiveTimeout) {
         message = 'Koneksi timeout. Server lambat atau tidak merespon.';
       } else if (e.response != null) {
-        final data = e.response?.data;
-        if (data is Map) {
-          message = data['message'] ?? 'Email atau password salah';
-        }
+        message = extractMessage(
+          e.response?.data?['message'],
+          fallback: 'Email atau password salah',
+        );
       } else if (e.message?.contains('HandshakeException') == true) {
         message = 'Masalah sertifikat SSL (sudah dibypass untuk debug)';
       }
 
-      AppNotifier.error(
-        'Login Gagal',
-        message,
-        duration: const Duration(seconds: 6),
-      );
+      AppNotifier.error('Login Gagal', message, duration: const Duration(seconds: 6));
       return null;
     } catch (e) {
       AppNotifier.error('Error', 'Terjadi kesalahan: $e');
       return null;
     }
-    return null;
   }
 
   // REFRESH TOKEN
+  // Response: { success: true, data: { accessToken, refreshToken } }
   Future<bool> refreshAccessToken() async {
     final refreshToken = getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) return false;
@@ -169,49 +176,32 @@ class AuthService {
         '/auth/refresh',
         options: Options(headers: {'Authorization': 'Bearer $refreshToken'}),
       );
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final newAccessToken = response.data['accessToken'] as String?;
-        final newRefreshToken = response.data['refreshToken'] as String?;
-        if (newAccessToken != null) await saveToken(newAccessToken);
-        if (newRefreshToken != null) {
-          await _storage.write('refresh_token', newRefreshToken);
-        }
-        return true;
+      final data = response.data['data'] as Map<String, dynamic>?;
+      final newAccessToken = data?['accessToken'] as String?;
+      final newRefreshToken = data?['refreshToken'] as String?;
+      if (newAccessToken != null) await saveToken(newAccessToken);
+      if (newRefreshToken != null) {
+        await _storage.write('refresh_token', newRefreshToken);
       }
+      return newAccessToken != null;
     } catch (_) {
       return false;
     }
-    return false;
   }
 
-  // VALIDATE TOKEN
+  // VALIDATE TOKEN — cek lokal dulu, lalu verifikasi ke server
   Future<bool> isTokenValid() async {
     final token = getToken();
     if (token == null || token.isEmpty) return false;
-
     try {
       final response = await _dio.get('/auth/me');
-      return response.statusCode == 200;
+      return response.data['success'] == true;
     } catch (_) {
-      // Interceptor sudah handle refresh & logout otomatis
       return false;
     }
   }
 
-  /// Cek apakah response API dianggap sukses.
-  /// Static agar bisa dipakai dari controller manapun tanpa inject service.
-  static bool isSuccess(Map<String, dynamic>? res) {
-    if (res == null) return false;
-    if (res['error'] == true) return false;
-    final statusCode = res['statusCode'] as int?;
-    if (statusCode != null && statusCode >= 400) return false;
-    final code = res['response_code']?.toString();
-    if (code != null && code.startsWith('4')) return false;
-    if (res['success'] == false) return false;
-    return true;
-  }
-
-  // LOGOUT (API + clear local storage)
+  // LOGOUT
   Future<bool> performLogout() async {
     try {
       await _dio.post('/auth/logout');
@@ -223,46 +213,34 @@ class AuthService {
     return true;
   }
 
+  // ─── Profile ──────────────────────────────────────────────────────────────
 
   // GET PROFILE
+  // Response: { success: true, data: { id, name, email, role, phone, vehicleNumber, vehicleType, status } }
   Future<Map<String, dynamic>?> getProfile() async {
     try {
       final response = await _dio.get('/auth/me');
-      if (response.statusCode == 200) {
-        return response.data as Map<String, dynamic>;
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  // GET CHECKIN HISTORY
-  Future<Map<String, dynamic>?> getCheckinHistory({
-    int page = 1,
-    int limit = 20,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    try {
-      final params = <String, dynamic>{'page': page, 'limit': limit};
-      if (startDate != null) {
-        params['from'] = startDate.toUtc().toIso8601String();
-      }
-      if (endDate != null) {
-        params['to'] = endDate.toUtc().toIso8601String();
-      }
-      final response = await _dio.get(
-        '/driver/checkin/history',
-        queryParameters: params,
-      );
-      return response.data as Map<String, dynamic>;
+      return response.data['data'] as Map<String, dynamic>;
     } catch (_) {
       return null;
     }
   }
 
+  // ─── Driver ───────────────────────────────────────────────────────────────
 
+  // GET DRIVER DASHBOARD
+  // Response: { success: true, data: { driverId, name, vehicleNumber, status, session? } }
+  Future<Map<String, dynamic>?> getDashboard() async {
+    try {
+      final response = await _dio.get('/driver/dashboard');
+      return response.data['data'] as Map<String, dynamic>;
+    } on DioException {
+      return null;
+    }
+  }
 
   // CHECK-IN
+  // Response: { success: true, message, data: { payment: { snapRedirectUrl } } }
   Future<Map<String, dynamic>?> checkIn({
     required double latitude,
     required double longitude,
@@ -272,27 +250,14 @@ class AuthService {
         '/driver/checkin',
         data: {'latitude': latitude, 'longitude': longitude},
       );
-      return response.data;
-    } on DioException catch (e) {
-      return {
-        'error': true,
-        'message': e.response?.data?['message'] ?? 'Check-in gagal',
-        'statusCode': e.response?.statusCode,
-      };
-    }
-  }
-
-  // GET DRIVER DASHBOARD
-  Future<Map<String, dynamic>?> getDashboard() async {
-    try {
-      final response = await _dio.get('/driver/dashboard');
       return response.data as Map<String, dynamic>;
-    } on DioException {
-      return null;
+    } on DioException catch (e) {
+      return _errorFrom(e, 'Check-in gagal');
     }
   }
 
   // RETURN TO STANDBY
+  // Response: { success: true, message: "Driver kembali ke pool. Status: Standby." }
   Future<Map<String, dynamic>?> returnToStandby({
     required double latitude,
     required double longitude,
@@ -302,31 +267,42 @@ class AuthService {
         '/driver/checkin/return',
         data: {'latitude': latitude, 'longitude': longitude},
       );
-      return response.data;
+      return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      return {
-        'error': true,
-        'message': e.response?.data?['message'] ?? 'Gagal return to standby',
-        'statusCode': e.response?.statusCode,
-      };
+      return _errorFrom(e, 'Gagal return to standby');
     }
   }
 
   // CHECKOUT
+  // Response: { success: true, message: "Check-out berhasil" }
   Future<Map<String, dynamic>?> checkout() async {
     try {
       final response = await _dio.post('/driver/checkin/checkout');
-      // print('CHECKOUT API SUCCESS: ${response.data}');
-      return response.data;
+      return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      // print('CHECKOUT API ERROR - Status: ${e.response?.statusCode}');
-      // print('CHECKOUT API ERROR - Message: ${e.response?.data['message']}');
-      return {
-        'success': false,
-        'message':
-            e.response?.data['message'] ??
-            'Checkout gagal (kode ${e.response?.statusCode})',
-      };
+      return _errorFrom(e, 'Checkout gagal');
+    }
+  }
+
+  // GET CHECKIN HISTORY
+  // Response: { success: true, data: [...], total, page, limit, totalPages }
+  Future<Map<String, dynamic>?> getCheckinHistory({
+    int page = 1,
+    int limit = 20,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      final params = <String, dynamic>{'page': page, 'limit': limit};
+      if (startDate != null) params['from'] = startDate.toUtc().toIso8601String();
+      if (endDate != null) params['to'] = endDate.toUtc().toIso8601String();
+      final response = await _dio.get(
+        '/driver/checkin/history',
+        queryParameters: params,
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (_) {
+      return null;
     }
   }
 }

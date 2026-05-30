@@ -12,10 +12,14 @@ void main() async {
 
   // Singleton AuthService — satu instance Dio untuk seluruh app lifecycle
   final authService = Get.put<AuthService>(AuthService(), permanent: true);
-  final isValid = await authService.isTokenValid();
+
+  // Cek token lokal secara sinkron (tidak butuh network) → app langsung tampil
+  // Validasi ke server dilakukan di background oleh HomeController.
+  // Kalau token expired, interceptor Dio otomatis redirect ke login.
+  final hasToken = authService.getToken() != null;
 
   runApp(CicoApp(
-    initialRoute: isValid ? AppRoutes.home : AppRoutes.login,
+    initialRoute: hasToken ? AppRoutes.home : AppRoutes.login,
   ));
 }
 
@@ -26,7 +30,7 @@ class CicoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'CICO Project',
+      title: 'CICO Driver',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

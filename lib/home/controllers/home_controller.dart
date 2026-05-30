@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cico_project/auth/services/biometric_service.dart';
 import 'package:cico_project/core/utils/auth_helper.dart';
@@ -34,6 +35,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Timer? _statusPollingTimer;
   Timer? _countdownTimer;
+  bool _isLoadingStatus = false; // guard terhadap concurrent loadCheckInStatus
 
   @override
   void onInit() {
@@ -114,6 +116,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> loadCheckInStatus() async {
+    if (_isLoadingStatus) return; // cegah concurrent calls
+    _isLoadingStatus = true;
+    try {
     final previousStatus = checkInStatus.value;
     final dashboard = await _authService.getDashboard();
     if (dashboard == null) {
@@ -178,6 +183,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         duration: const Duration(seconds: 5),
       );
     }
+
+    } finally {
+      _isLoadingStatus = false;
+    }
   }
 
   void _resetToIdle() {
@@ -190,9 +199,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   Future<void> refreshSessionStatus() async {
     try {
       await loadCheckInStatus();
-    } catch (_) {
-      // Refresh background — tidak notifikasi agar tidak mengganggu UX
-      // Error kritis (token expired, dll) sudah ditangani oleh interceptor Dio
+    } catch (e) {
+      // Tidak notifikasi agar tidak ganggu UX — error kritis ditangani interceptor
+      if (kDebugMode) debugPrint('[HomeController] refreshSessionStatus error: $e');
     }
   }
 
@@ -268,6 +277,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  /// Ekstrak snapRedirectUrl dari response check-in.
+  /// Format baru: { success: true, data: { payment: { snapRedirectUrl } } }
+  String _extractRedirectUrl(Map<String, dynamic>? res) {
+    final data = res?['data'] as Map<String, dynamic>?;
+    final payment = data?['payment'] as Map<String, dynamic>?;
+    return payment?['snapRedirectUrl'] as String? ?? '';
+  }
+
   Future<void> _doCheckIn() async {
     // 1. Biometric wajib
     final bool authenticated = await requestBiometricForCheckIn();
@@ -283,18 +300,16 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       longitude: pos.longitude,
     );
     if (!AuthService.isSuccess(res)) {
-      AppNotifier.error('Gagal Check-In', res?['message'] ?? 'Gagal check-in');
+      AppNotifier.error(
+        'Gagal Check-In',
+        AuthService.extractMessage(res?['message'], fallback: 'Gagal check-in'),
+      );
       await refreshSessionStatus();
       return;
     }
 
-    // 4. Ambil redirectUrl dari response (handle dua format)
-    final payment = res?['payment'] as Map<String, dynamic>?;
-    final redirectUrl = res?['redirect_url'] as String?
-        ?? payment?['snapRedirectUrl'] as String?
-        ?? '';
-
-    // 5. Buka payment jika ada redirectUrl, atau refresh status
+    // 4. Buka payment jika ada redirectUrl, atau refresh status langsung
+    final redirectUrl = _extractRedirectUrl(res);
     if (redirectUrl.isNotEmpty) {
       await refreshSessionStatus();
       final result = await Get.to(() => SnapPaymentPage(redirectUrl: redirectUrl));
@@ -320,14 +335,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       longitude: pos.longitude,
     );
     if (!AuthService.isSuccess(res)) {
-      AppNotifier.error('Gagal', res?['message'] ?? 'Gagal mendapatkan halaman pembayaran');
+      AppNotifier.error(
+        'Gagal',
+        AuthService.extractMessage(res?['message'], fallback: 'Gagal mendapatkan halaman pembayaran'),
+      );
       return;
     }
 
-    final paymentData = res?['payment'] as Map<String, dynamic>?;
-    final redirectUrl = res?['redirect_url'] as String?
-        ?? paymentData?['snapRedirectUrl'] as String?
-        ?? '';
+    final redirectUrl = _extractRedirectUrl(res);
     if (redirectUrl.isEmpty) {
       AppNotifier.warning('Pembayaran', 'URL pembayaran tidak ditemukan.');
       return;
@@ -373,12 +388,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     );
 
     if (!AuthService.isSuccess(res)) {
-      AppNotifier.error('Gagal Return', res?['message'] ?? 'Gagal return to standby');
+      AppNotifier.error('Gagal Return',
+          AuthService.extractMessage(res?['message'], fallback: 'Gagal return to standby'));
       return;
     }
 
     checkInStatus.value = 'standby';
-    AppNotifier.success('Berhasil', res?['message'] ?? 'Kamu sudah kembali ke standby');
+    AppNotifier.success('Berhasil',
+        AuthService.extractMessage(res?['message'], fallback: 'Kamu sudah kembali ke standby'));
     await refreshWithDelay();
   }
 
@@ -393,12 +410,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
     final res = await _authService.checkout();
     if (!AuthService.isSuccess(res)) {
-      AppNotifier.error('Gagal Check-Out', res?['message'] ?? res?['error'] ?? 'Check-out ditolak server');
+      AppNotifier.error('Gagal Check-Out',
+          AuthService.extractMessage(res?['message'], fallback: 'Check-out ditolak server'));
       return;
     }
 
     checkInStatus.value = 'offline';
-    AppNotifier.info('Check-Out Berhasil', res?['message'] ?? 'Sesi telah diakhiri');
+    AppNotifier.info('Check-Out Berhasil',
+        AuthService.extractMessage(res?['message'], fallback: 'Sesi telah diakhiri'));
     await refreshWithDelay();
   }
 

@@ -10,8 +10,7 @@ class BiometricService {
       final bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
       return canCheckBiometrics || isDeviceSupported;
-    } catch (e) {
-      // print('Error check biometric: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -19,8 +18,7 @@ class BiometricService {
   Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
       return await _localAuth.getAvailableBiometrics();
-    } catch (e) {
-      // print('Error get biometrics: $e');
+    } catch (_) {
       return [];
     }
   }
@@ -31,7 +29,7 @@ class BiometricService {
     bool stickyAuth = true,
   }) async {
     try {
-      final bool didAuthenticate = await _localAuth.authenticate(
+      return await _localAuth.authenticate(
         localizedReason: reason,
         options: AuthenticationOptions(
           biometricOnly: biometricOnly,
@@ -39,16 +37,13 @@ class BiometricService {
           useErrorDialogs: true,
         ),
       );
-      return didAuthenticate;
     } on PlatformException catch (e) {
-      // print('Biometric error: ${e.code} - ${e.message}');
       AppNotifier.warning(
         'Gagal Verifikasi',
         'Biometric gagal: ${e.message ?? 'Coba lagi'}',
       );
       return false;
-    } catch (e) {
-      // print('Unexpected error: $e');
+    } catch (_) {
       return false;
     }
   }

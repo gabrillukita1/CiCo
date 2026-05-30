@@ -9,7 +9,7 @@ class HistoryController extends GetxController {
   final _authService = Get.find<AuthService>();
 
   final sessionList = <Map<String, dynamic>>[].obs;
-  final isLoading = true.obs;
+  final isLoading = false.obs;
   final isLoadingMore = false.obs;
   final hasMore = true.obs;
 

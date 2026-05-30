@@ -70,6 +70,11 @@ class ProfileScreen extends GetView<ProfileController> {
   }
 
   Widget _buildAvatarSection(Map<String, dynamic> p) {
+    final name = p['name'] as String? ?? '';
+    final initials = name.trim().isEmpty
+        ? '?'
+        : name.trim().split(RegExp(r'\s+')).take(2).map((w) => w[0].toUpperCase()).join();
+
     return Column(
       children: [
         Container(
@@ -77,10 +82,17 @@ class ProfileScreen extends GetView<ProfileController> {
             shape: BoxShape.circle,
             border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 3),
           ),
-          child: const CircleAvatar(
+          child: CircleAvatar(
             radius: 44,
-            backgroundColor: AppColors.background,
-            child: Icon(Icons.person_rounded, size: 48, color: AppColors.primary),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+            child: Text(
+              initials,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 28,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 12),
