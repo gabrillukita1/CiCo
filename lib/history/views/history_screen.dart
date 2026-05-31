@@ -4,7 +4,6 @@ import 'package:cico_project/core/utils/status_helper.dart';
 import 'package:cico_project/history/controllers/history_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 const _filters = [
@@ -75,7 +74,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text('History',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: TextStyle(fontFamily: 'SpaceGrotesk',
                     fontWeight: FontWeight.w700, fontSize: 30,
                     letterSpacing: -0.5, color: AppColors.ink,
                   ),
@@ -90,7 +89,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                     child: Text(
                       '$count',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: TextStyle(fontFamily: 'SpaceGrotesk',
                         color: AppColors.brand600, fontWeight: FontWeight.w700, fontSize: 13,
                       ),
                     ),
@@ -325,7 +324,7 @@ class _SessionCardState extends State<_SessionCard> {
                   const Spacer(),
                   Text(
                       tz.formatDateRange(widget.session['checkinAt'], widget.session['checkoutAt']),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: TextStyle(fontFamily: 'SpaceGrotesk',
                           fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.muted)),
                 ],
               ),
@@ -348,7 +347,7 @@ class _SessionCardState extends State<_SessionCard> {
                         if (status != 'expired' && _duration(widget.session['checkinAt'], widget.session['checkoutAt']) != null)
                           Text(
                             _duration(widget.session['checkinAt'], widget.session['checkoutAt'])!,
-                            style: GoogleFonts.spaceGrotesk(
+                            style: TextStyle(fontFamily: 'SpaceGrotesk',
                                 fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.muted),
                             textAlign: TextAlign.center,
                           ),
@@ -392,7 +391,7 @@ class _SessionCardState extends State<_SessionCard> {
                   letterSpacing: 1.4, color: AppColors.muted)),
           const SizedBox(height: 4),
           Text(time,
-              style: GoogleFonts.spaceGrotesk(
+              style: TextStyle(fontFamily: 'SpaceGrotesk',
                   fontWeight: FontWeight.w700, fontSize: 28, color: AppColors.ink)),
         ],
       ),
@@ -438,7 +437,7 @@ class _SessionCardState extends State<_SessionCard> {
                 children: [
                   Text(
                     _fmtCurrency(amount),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: TextStyle(fontFamily: 'SpaceGrotesk',
                       fontWeight: FontWeight.w700, fontSize: 16.5,
                       color: isStruck ? AppColors.muted : AppColors.ink,
                       decoration: isStruck ? TextDecoration.lineThrough : null,
@@ -551,7 +550,7 @@ class _SessionCardState extends State<_SessionCard> {
                           ),
                           child: Center(
                             child: Text('${i + 1}',
-                              style: GoogleFonts.spaceGrotesk(
+                              style: TextStyle(fontFamily: 'SpaceGrotesk',
                                   fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.warn),
                             ),
                           ),
@@ -579,7 +578,7 @@ class _SessionCardState extends State<_SessionCard> {
                                   style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
                                       letterSpacing: 1.4, color: AppColors.muted)),
                               Text(time,
-                                  style: GoogleFonts.spaceGrotesk(
+                                  style: TextStyle(fontFamily: 'SpaceGrotesk',
                                       fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink),
                                   overflow: TextOverflow.ellipsis),
                             ],

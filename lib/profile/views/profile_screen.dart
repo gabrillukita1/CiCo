@@ -5,7 +5,6 @@ import 'package:cico_project/profile/controllers/profile_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ProfileScreen extends GetView<ProfileController> {
   const ProfileScreen({super.key});
@@ -24,7 +23,7 @@ class ProfileScreen extends GetView<ProfileController> {
             child: Row(
               children: [
                 Text('Profile',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: TextStyle(fontFamily: 'SpaceGrotesk',
                     fontWeight: FontWeight.w700, fontSize: 30,
                     letterSpacing: -0.5, color: AppColors.ink,
                   ),
@@ -221,7 +220,7 @@ class ProfileScreen extends GetView<ProfileController> {
                           ),
                           child: Center(
                             child: Text(initials,
-                              style: GoogleFonts.spaceGrotesk(
+                              style: TextStyle(fontFamily: 'SpaceGrotesk',
                                 color: const Color(0xFFEAFBFB),
                                 fontWeight: FontWeight.w600, fontSize: 25,
                               ),
@@ -234,7 +233,7 @@ class ProfileScreen extends GetView<ProfileController> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(name,
-                                style: GoogleFonts.spaceGrotesk(
+                                style: TextStyle(fontFamily: 'SpaceGrotesk',
                                   color: Colors.white, fontSize: 22,
                                   fontWeight: FontWeight.w600, letterSpacing: -0.3,
                                 ),
@@ -261,7 +260,7 @@ class ProfileScreen extends GetView<ProfileController> {
                               fontWeight: FontWeight.w700, letterSpacing: 1.4)),
                         const SizedBox(height: 4),
                         Text(plate,
-                          style: GoogleFonts.spaceGrotesk(
+                          style: TextStyle(fontFamily: 'SpaceGrotesk',
                             color: Colors.white, fontWeight: FontWeight.w700,
                             fontSize: 25, letterSpacing: 1.2,
                           ),
@@ -293,7 +292,7 @@ class ProfileScreen extends GetView<ProfileController> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('ID · ${p['id'] ?? '-'}',
-                            style: GoogleFonts.spaceGrotesk(
+                            style: TextStyle(fontFamily: 'SpaceGrotesk',
                                 color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600)),
                           const SizedBox(width: 5),
                           const Icon(Icons.copy_rounded, size: 11, color: Colors.white38),
@@ -301,7 +300,7 @@ class ProfileScreen extends GetView<ProfileController> {
                       ),
                     ),
                     Text('VALID',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: TextStyle(fontFamily: 'SpaceGrotesk',
                           color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600)),
                   ],
                 ),
@@ -412,7 +411,7 @@ class _InfoRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(value,
                     style: mono
-                        ? GoogleFonts.spaceGrotesk(fontSize: 15.5, color: AppColors.ink, fontWeight: FontWeight.w700)
+                        ? TextStyle(fontFamily: 'SpaceGrotesk',fontSize: 15.5, color: AppColors.ink, fontWeight: FontWeight.w700)
                         : const TextStyle(fontSize: 15.5, color: AppColors.ink, fontWeight: FontWeight.w700)),
               ],
             ),

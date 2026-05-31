@@ -1,7 +1,6 @@
 import 'package:cico_project/core/style/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../controllers/login_controller.dart';
 
 class LoginScreen extends GetView<LoginController> {
@@ -67,7 +66,7 @@ class LoginScreen extends GetView<LoginController> {
                     const SizedBox(width: 10),
                     Text(
                       'DRIVER TERMINAL',
-                      style: GoogleFonts.spaceGrotesk(
+                      style: TextStyle(fontFamily: 'SpaceGrotesk',
                         color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -81,7 +80,7 @@ class LoginScreen extends GetView<LoginController> {
                 RichText(
                   text: TextSpan(
                     text: 'cico',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: TextStyle(fontFamily: 'SpaceGrotesk',
                       color: Colors.white,
                       fontSize: 62,
                       fontWeight: FontWeight.w700,
@@ -91,7 +90,7 @@ class LoginScreen extends GetView<LoginController> {
                     children: [
                       TextSpan(
                         text: '.',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: TextStyle(fontFamily: 'SpaceGrotesk',
                           color: const Color(0xFF9FE9ED),
                           fontSize: 62,
                           fontWeight: FontWeight.w700,
@@ -133,7 +132,7 @@ class LoginScreen extends GetView<LoginController> {
             children: [
               Text(
                 'Sign in',
-                style: GoogleFonts.spaceGrotesk(
+                style: TextStyle(fontFamily: 'SpaceGrotesk',
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
                   color: AppColors.ink,

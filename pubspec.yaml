@@ -27,7 +27,7 @@ dependencies:
   intl: ^0.19.0
   gal: ^2.3.0
   package_info_plus: ^8.0.0
-  google_fonts: ^6.2.1
+  # google_fonts: ^6.2.1  # fonts now bundled as assets
 
 dev_dependencies:
   flutter_test:
@@ -43,3 +43,14 @@ flutter:
     - assets/images/success_icon.png
     - assets/images/reject_icon.png
     - assets/images/waiting_for_payment.png
+
+  # Fonts
+  fonts:
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk-VariableFont_wght.ttf
+    - family: HankenGrotesk
+      fonts:
+        - asset: assets/fonts/HankenGrotesk-VariableFont_wght.ttf
+        - asset: assets/fonts/HankenGrotesk-Italic-VariableFont_wght.ttf
+          style: italic

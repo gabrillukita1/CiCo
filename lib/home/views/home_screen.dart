@@ -3,7 +3,6 @@ import 'package:cico_project/home/controllers/home_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_swipe_button/flutter_swipe_button.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends GetView<HomeController> {
   const HomeScreen({super.key});
@@ -101,7 +100,7 @@ class HomeScreen extends GetView<HomeController> {
             child: Center(
               child: Text(
                 initials,
-                style: GoogleFonts.spaceGrotesk(
+                style: TextStyle(fontFamily: 'SpaceGrotesk',
                   color: const Color(0xFFEAFBFB),
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
@@ -125,7 +124,7 @@ class HomeScreen extends GetView<HomeController> {
                 ),
                 Text(
                   name.isEmpty ? 'Driver' : name,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: TextStyle(fontFamily: 'SpaceGrotesk',
                     color: AppColors.ink,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -342,7 +341,7 @@ class HomeScreen extends GetView<HomeController> {
                                 controller.vehicleNumber.value.isEmpty
                                     ? '— —'
                                     : controller.vehicleNumber.value,
-                                style: GoogleFonts.spaceGrotesk(
+                                style: TextStyle(fontFamily: 'SpaceGrotesk',
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12.5,
@@ -378,7 +377,7 @@ class HomeScreen extends GetView<HomeController> {
                         children: [
                           Text(
                             hero,
-                            style: GoogleFonts.spaceGrotesk(
+                            style: TextStyle(fontFamily: 'SpaceGrotesk',
                               color: Colors.white,
                               fontSize: status == 'pending_payment' ? 52 : 72,
                               fontWeight: FontWeight.w700,
@@ -750,7 +749,7 @@ class _StageFooter extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: GoogleFonts.spaceGrotesk(
+            style: TextStyle(fontFamily: 'SpaceGrotesk',
               color: Colors.white,
               fontWeight: FontWeight.w700,
               fontSize: 19,
