@@ -388,22 +388,70 @@ class HomeScreen extends GetView<HomeController> {
     required VoidCallback onSwipe,
     required bool compact,
   }) {
+    final h = compact ? 58.0 : 68.0;
     return SwipeButton.expand(
-      height: compact ? 58 : 68,
-      activeTrackColor: AppColors.surface,
-      activeThumbColor: color,
-      elevationThumb: 2,
+      height: h,
+      // Colored track (full background), white knob — matches Claude Design
+      activeTrackColor: color,
+      activeThumbColor: Colors.white,
+      elevationThumb: 3,
       onSwipe: (disabled || isBusy) ? null : onSwipe,
       thumb: isBusy
           ? SizedBox(
               width: 18, height: 18,
               child: CircularProgressIndicator(color: color, strokeWidth: 2),
             )
-          : Icon(icon, color: Colors.white),
-      child: Text(
-        label,
-        style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800,
-            fontSize: 14, letterSpacing: 0.6),
+          : Icon(icon, color: color), // colored icon on white knob
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Dashed lines + label row (centered)
+          Row(
+            children: [
+              Expanded(
+                child: CustomPaint(
+                  painter: _DashedLinePainter(
+                    color: Colors.white.withValues(alpha: 0.4),
+                  ),
+                  child: const SizedBox(height: 2),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CustomPaint(
+                  painter: _DashedLinePainter(
+                    color: Colors.white.withValues(alpha: 0.4),
+                  ),
+                  child: const SizedBox(height: 2),
+                ),
+              ),
+            ],
+          ),
+          // >>> chevron hint on right
+          Positioned(
+            right: 14,
+            child: Row(
+              children: List.generate(3, (i) => Padding(
+                padding: EdgeInsets.only(left: i > 0 ? -4 : 0),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  size: compact ? 13 : 15,
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
+              )),
+            ),
+          ),
+        ],
       ),
     );
   }
