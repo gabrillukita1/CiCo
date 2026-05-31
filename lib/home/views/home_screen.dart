@@ -183,7 +183,6 @@ class HomeScreen extends GetView<HomeController> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(30),
           gradient: cfg.gradient,
-          boxShadow: [BoxShadow(color: cfg.shadowColor, blurRadius: 30, offset: const Offset(0, 12))],
         ),
         child: Stack(
           children: [
