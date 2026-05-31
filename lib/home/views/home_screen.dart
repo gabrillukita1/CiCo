@@ -517,13 +517,11 @@ class _StageFooter extends StatelessWidget {
 // ── Perforated divider ─────────────────────────────────────────────────────────
 class _PerforatedDivider extends StatelessWidget {
   final Color lineColor;
-  /// Warna notch — default otomatis pakai scaffoldBackgroundColor dari Theme.
-  final Color? notchColor;
-  const _PerforatedDivider({required this.lineColor, this.notchColor});
+  const _PerforatedDivider({required this.lineColor});
 
   @override
   Widget build(BuildContext context) {
-    final color = notchColor ?? Theme.of(context).scaffoldBackgroundColor;
+    final color = Theme.of(context).scaffoldBackgroundColor;
     return SizedBox(
       height: 22,
       child: Stack(
