@@ -34,7 +34,7 @@ class HomeScreen extends GetView<HomeController> {
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: EdgeInsets.only(
-                    top: MediaQuery.of(context).padding.top + 4,
+                    top: MediaQuery.of(context).padding.top + 16,
                     left: 18, right: 18, bottom: 8,
                   ),
                   child: Column(
