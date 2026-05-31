@@ -137,29 +137,38 @@ class HomeScreen extends GetView<HomeController> {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: controller.manualRefresh,
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+          Obx(() {
+            final spinning = controller.isRefreshing.value;
+            return GestureDetector(
+              onTap: controller.manualRefresh,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: AnimatedRotation(
+                  turns: spinning ? 1.0 : 0.0,
+                  duration: spinning
+                      ? const Duration(milliseconds: 600)
+                      : Duration.zero,
+                  child: Icon(
+                    Icons.refresh_rounded,
+                    size: 20,
+                    color: spinning ? AppColors.brand600 : AppColors.ink2,
                   ),
-                ],
+                ),
               ),
-              child: const Icon(
-                Icons.refresh_rounded,
-                size: 20,
-                color: AppColors.ink2,
-              ),
-            ),
-          ),
+            );
+          }),
         ],
       );
     });

@@ -23,6 +23,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   final AuthService _authService = Get.find<AuthService>();
 
   final isInitializing = true.obs;
+  final isRefreshing = false.obs;
   final userName = ''.obs;
   final vehicleNumber = ''.obs;
 
@@ -501,6 +502,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> manualRefresh() async {
+    if (isRefreshing.value) return;
+    isRefreshing.value = true;
     try {
       await _loadCheckInStatus();
     } catch (e) {
@@ -508,6 +511,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         'Refresh Gagal',
         'Tidak dapat memperbarui status.',
       );
+    } finally {
+      isRefreshing.value = false;
     }
   }
 }
