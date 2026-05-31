@@ -24,13 +24,16 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   final endTime = ''.obs;
 
   final checkInStatus = ''.obs;
-  final isProcessing = false.obs;
+
+  /// Aksi yang sedang berjalan: 'checkin' | 'retry' | 'checkout' | 'return' | ''
+  /// Kosong = tidak ada proses. View memakai ini untuk tahu button mana yang aktif.
+  final activeAction = ''.obs;
 
   final remainingMinutes = Rxn<int>();
 
-  final biometricService = Get.find<BiometricService>();
+  final _biometricService = Get.find<BiometricService>();  // private
 
-  final currentPosition = Rxn<Position>();
+  final _currentPosition = Rxn<Position>();                // private — view pakai currentAddress
   final currentAddress = ''.obs;
 
   Timer? _statusPollingTimer;
@@ -50,13 +53,16 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       manualRefresh();
-      fetchCurrentLocation(); // refresh lokasi saat app kembali aktif
+      // Refresh lokasi hanya jika cache sudah lebih dari 10 menit atau belum pernah dapat
+      final isLocationStale = _locationTimestamp == null ||
+          DateTime.now().difference(_locationTimestamp!) > const Duration(minutes: 10);
+      if (isLocationStale) fetchCurrentLocation();
     }
   }
 
   Future<void> _initDashboard() async {
     isInitializing.value = true;
-    await loadCheckInStatus();
+    await _loadCheckInStatus();
     isInitializing.value = false;
   }
 
@@ -99,7 +105,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       Position pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      currentPosition.value = pos;
+      _currentPosition.value = pos;
       _locationTimestamp = DateTime.now();
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -124,7 +130,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> loadCheckInStatus() async {
+  Future<void> _loadCheckInStatus() async {
     if (_isLoadingStatus) return; // cegah concurrent calls
     _isLoadingStatus = true;
     try {
@@ -203,7 +209,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Future<void> refreshSessionStatus() async {
     try {
-      await loadCheckInStatus();
+      await _loadCheckInStatus();
     } catch (e) {
       // Tidak notifikasi agar tidak ganggu UX — error kritis ditangani interceptor
       if (kDebugMode) debugPrint('[HomeController] refreshSessionStatus error: $e');
@@ -231,32 +237,32 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> toggleCheckInOut() async {
-    if (isProcessing.value) return;
-    isProcessing.value = true;
+    if (activeAction.value.isNotEmpty) return;
+    final status = checkInStatus.value;
+
+    // Set aksi spesifik agar view bisa menampilkan spinner di tombol yang tepat
+    if (status == 'pending_payment') {
+      activeAction.value = 'retry';
+    } else if (status == 'standby') {
+      activeAction.value = 'checkout';
+    } else {
+      activeAction.value = 'checkin';
+    }
 
     try {
-      // Gunakan status lokal yang sudah di-sync oleh polling
-      // Tidak perlu refresh di sini agar swipe responsif dan tidak reset status
-      final status = checkInStatus.value;
-
-      // ─── LANJUT PEMBAYARAN ───────────────────────────────────────────────
       if (status == 'pending_payment') {
         await _doRetryPayment();
         return;
       }
-
-      // ─── CHECK-OUT ───────────────────────────────────────────────────────
       if (status == 'standby') {
         await _doCheckOut();
         return;
       }
-
-      // ─── CHECK-IN ────────────────────────────────────────────────────────
       await _doCheckIn();
     } catch (e) {
       AppNotifier.error('Error', 'Gagal proses: $e');
     } finally {
-      isProcessing.value = false;
+      activeAction.value = '';
     }
   }
 
@@ -267,7 +273,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     Duration timeout = const Duration(seconds: 10),
     Duration maxAge = const Duration(minutes: 10),
   }) async {
-    final cached = currentPosition.value;
+    final cached = _currentPosition.value;
     if (cached != null && _locationTimestamp != null) {
       if (DateTime.now().difference(_locationTimestamp!) < maxAge) return cached;
     }
@@ -275,7 +281,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: accuracy,
       ).timeout(timeout);
-      currentPosition.value = pos;
+      _currentPosition.value = pos;
       _locationTimestamp = DateTime.now();
       return pos;
     } catch (_) {
@@ -365,27 +371,27 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   /// Dipanggil dari SwipeButton Return saat status on_duty
   Future<void> returnToStandby() async {
-    if (isProcessing.value) return;
-    isProcessing.value = true;
+    if (activeAction.value.isNotEmpty) return;
+    activeAction.value = 'return';
     try {
       await _doReturnToStandby();
     } catch (e) {
       AppNotifier.error('Error', 'Gagal proses: $e');
     } finally {
-      isProcessing.value = false;
+      activeAction.value = '';
     }
   }
 
   /// Dipanggil dari SwipeButton Check-Out saat status on_duty
   Future<void> checkOutFromDuty() async {
-    if (isProcessing.value) return;
-    isProcessing.value = true;
+    if (activeAction.value.isNotEmpty) return;
+    activeAction.value = 'checkout';
     try {
       await _doCheckOut();
     } catch (e) {
       AppNotifier.error('Error', 'Gagal proses: $e');
     } finally {
-      isProcessing.value = false;
+      activeAction.value = '';
     }
   }
 
@@ -475,7 +481,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Future<bool> _requestBiometricForCheckIn() async {
     try {
-      final bool authenticated = await biometricService.authenticate(
+      final bool authenticated = await _biometricService.authenticate(
         reason: 'Konfirmasi identitas untuk check-in',
       );
       if (!authenticated) {
@@ -498,7 +504,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   Future<void> manualRefresh() async {
     try {
-      await loadCheckInStatus();
+      await _loadCheckInStatus();
     } catch (e) {
       AppNotifier.error(
         'Error',

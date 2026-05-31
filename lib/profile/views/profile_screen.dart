@@ -136,7 +136,7 @@ class ProfileScreen extends GetView<ProfileController> {
       children: [
         _infoRow(Icons.alternate_email_rounded, 'Email', p['email'] ?? '-'),
         _infoRow(Icons.phone_rounded, 'Telepon', p['phone'] ?? '-'),
-        _infoRow(Icons.shield_rounded, 'Role', p['role'] ?? '-'),
+        _infoRow(Icons.shield_rounded, 'Peran', p['role'] ?? '-'),
       ],
     );
   }

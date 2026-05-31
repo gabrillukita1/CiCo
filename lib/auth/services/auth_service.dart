@@ -189,18 +189,6 @@ class AuthService {
     }
   }
 
-  // VALIDATE TOKEN — cek lokal dulu, lalu verifikasi ke server
-  Future<bool> isTokenValid() async {
-    final token = getToken();
-    if (token == null || token.isEmpty) return false;
-    try {
-      final response = await _dio.get('/auth/me');
-      return response.data['success'] == true;
-    } catch (_) {
-      return false;
-    }
-  }
-
   // LOGOUT
   Future<bool> performLogout() async {
     try {

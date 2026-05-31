@@ -75,11 +75,15 @@ class HomeScreen extends GetView<HomeController> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Obx(() {
-        final isProcessing = controller.isProcessing.value;
+        final action = controller.activeAction.value; // '' | 'return' | 'checkout' | 'checkin' | 'retry'
         final status = controller.checkInStatus.value;
+        final anyBusy = action.isNotEmpty;
 
-        // ON DUTY: dua swipe button
+        // ON DUTY: dua swipe button — masing-masing tahu aksinya sendiri
         if (status == 'on_duty') {
+          final returningNow = action == 'return';
+          final checkingOutNow = action == 'checkout';
+
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -88,8 +92,8 @@ class HomeScreen extends GetView<HomeController> {
                 activeTrackColor: AppColors.surface,
                 activeThumbColor: AppColors.standby,
                 elevationThumb: 2,
-                onSwipe: controller.returnToStandby,
-                thumb: isProcessing
+                onSwipe: anyBusy ? null : controller.returnToStandby,
+                thumb: returningNow
                     ? const SizedBox(
                         height: 18,
                         width: 18,
@@ -97,7 +101,7 @@ class HomeScreen extends GetView<HomeController> {
                       )
                     : const Icon(Icons.reply_rounded, color: AppColors.surface),
                 child: Text(
-                  isProcessing ? 'Mohon Tunggu...' : 'Swipe untuk Return',
+                  returningNow ? 'Kembali ke Standby...' : 'Swipe untuk Return',
                   style: const TextStyle(
                     color: AppColors.textMain,
                     fontWeight: FontWeight.bold,
@@ -111,8 +115,8 @@ class HomeScreen extends GetView<HomeController> {
                 activeTrackColor: AppColors.surface,
                 activeThumbColor: Colors.red.shade400,
                 elevationThumb: 2,
-                onSwipe: controller.checkOutFromDuty,
-                thumb: isProcessing
+                onSwipe: anyBusy ? null : controller.checkOutFromDuty,
+                thumb: checkingOutNow
                     ? const SizedBox(
                         height: 18,
                         width: 18,
@@ -120,7 +124,7 @@ class HomeScreen extends GetView<HomeController> {
                       )
                     : Icon(Icons.logout_rounded, color: AppColors.surface),
                 child: Text(
-                  isProcessing ? 'Mohon Tunggu...' : 'Swipe untuk Check-Out',
+                  checkingOutNow ? 'Check-Out...' : 'Swipe untuk Check-Out',
                   style: const TextStyle(
                     color: AppColors.textMain,
                     fontWeight: FontWeight.bold,
@@ -156,8 +160,8 @@ class HomeScreen extends GetView<HomeController> {
           activeTrackColor: AppColors.surface,
           activeThumbColor: thumbColor,
           elevationThumb: 2,
-          onSwipe: controller.toggleCheckInOut,
-          thumb: isProcessing
+          onSwipe: anyBusy ? null : controller.toggleCheckInOut,
+          thumb: anyBusy
               ? const SizedBox(
                   height: 20,
                   width: 20,
@@ -165,7 +169,7 @@ class HomeScreen extends GetView<HomeController> {
                 )
               : const Icon(Icons.double_arrow_rounded, color: AppColors.surface),
           child: Text(
-            isProcessing ? 'Mohon Tunggu...' : text,
+            anyBusy ? 'Mohon Tunggu...' : text,
             style: const TextStyle(
               color: AppColors.textMain,
               fontWeight: FontWeight.bold,

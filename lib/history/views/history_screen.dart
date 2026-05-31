@@ -452,15 +452,15 @@ class _SessionCard extends StatelessWidget {
     switch (payStatus) {
       case 'success':
         badgeColor = AppColors.active;
-        badgeLabel = 'Success';
+        badgeLabel = 'Berhasil';
         break;
       case 'pending':
         badgeColor = AppColors.waiting;
-        badgeLabel = 'Pending';
+        badgeLabel = 'Menunggu';
         break;
       case 'failed':
         badgeColor = AppColors.inactive;
-        badgeLabel = 'Failed';
+        badgeLabel = 'Gagal';
         break;
       case 'expired':
         badgeColor = AppColors.textSub;
@@ -468,7 +468,7 @@ class _SessionCard extends StatelessWidget {
         break;
       case 'cancelled':
         badgeColor = AppColors.inactive;
-        badgeLabel = 'Cancelled';
+        badgeLabel = 'Dibatalkan';
         break;
       default:
         badgeColor = AppColors.textSub;

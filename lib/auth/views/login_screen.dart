@@ -87,7 +87,7 @@ class LoginScreen extends GetView<LoginController> {
       child: Column(
         children: [
           _buildTextField(
-            label: 'Email Address',
+            label: 'Email',
             hint: 'Masukkan email kerja',
             textController: controller.emailController,
             icon: Icons.alternate_email_rounded,
@@ -98,7 +98,7 @@ class LoginScreen extends GetView<LoginController> {
           const SizedBox(height: 24),
           // Password field — reactive untuk toggle show/hide
           Obx(() => _buildTextField(
-            label: 'Password',
+            label: 'Kata Sandi',
             hint: '••••••••',
             textController: controller.passwordController,
             icon: Icons.lock_outline_rounded,
