@@ -74,6 +74,7 @@ class HomeScreen extends GetView<HomeController> {
                 begin: Alignment.topLeft, end: Alignment.bottomRight,
                 colors: [AppColors.primary, AppColors.brand700],
               ),
+              border: Border.all(color: Colors.white, width: 3),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.primary.withValues(alpha: 0.35),
