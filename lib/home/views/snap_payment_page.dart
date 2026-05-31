@@ -19,11 +19,25 @@ class SnapPaymentPage extends StatefulWidget {
 
 class _SnapPaymentPageState extends State<SnapPaymentPage> {
   late final WebViewController _controller;
+  late final Dio _downloadDio; // reusable — tidak buat ulang setiap download
   bool _isDownloading = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Inisialisasi Dio sekali untuk download QRIS
+    _downloadDio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+    ));
+    if (kDebugMode) {
+      (_downloadDio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback = (cert, host, port) => true;
+        return client;
+      };
+    }
 
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -63,6 +77,12 @@ class _SnapPaymentPageState extends State<SnapPaymentPage> {
         ),
       )
       ..loadRequest(Uri.parse(widget.redirectUrl));
+  }
+
+  @override
+  void dispose() {
+    _downloadDio.close();
+    super.dispose();
   }
 
   /// Inject JS ke halaman Snap setelah load.
@@ -111,21 +131,7 @@ class _SnapPaymentPageState extends State<SnapPaymentPage> {
     }
     setState(() => _isDownloading = true);
     try {
-
-      // Dio dengan SSL bypass untuk kompatibilitas sandbox Midtrans
-      final dio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-      ));
-      if (kDebugMode) {
-        (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-          final client = HttpClient();
-          client.badCertificateCallback = (cert, host, port) => true;
-          return client;
-        };
-      }
-
-      final response = await dio.get<Uint8List>(
+      final response = await _downloadDio.get<Uint8List>(
         url,
         options: Options(responseType: ResponseType.bytes),
       );

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:cico_project/auth/services/biometric_service.dart';
 import 'package:cico_project/core/utils/auth_helper.dart';
 import 'package:cico_project/core/utils/date_utils.dart' as tz;
@@ -13,7 +13,13 @@ import '../../auth/services/auth_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
+/// Aksi driver yang sedang berjalan — dipakai view untuk spinner per-button.
+enum DriverAction { none, checkin, retry, checkout, returnStandby }
+
 class HomeController extends GetxController with WidgetsBindingObserver {
+  /// Delay setelah aksi berhasil sebelum refresh status dari server.
+  /// Memberi waktu backend memproses sebelum response-nya diambil.
+  static const _kAfterActionDelay = Duration(milliseconds: 800);
   final AuthService _authService = Get.find<AuthService>();
 
   final isInitializing = true.obs;
@@ -25,9 +31,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   final checkInStatus = ''.obs;
 
-  /// Aksi yang sedang berjalan: 'checkin' | 'retry' | 'checkout' | 'return' | ''
-  /// Kosong = tidak ada proses. View memakai ini untuk tahu button mana yang aktif.
-  final activeAction = ''.obs;
+  final activeAction = DriverAction.none.obs;
 
   final remainingMinutes = Rxn<int>();
 
@@ -46,7 +50,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
     _initDashboard();
-    fetchCurrentLocation();
+    _fetchCurrentLocation();
   }
 
   @override
@@ -56,7 +60,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       // Refresh lokasi hanya jika cache sudah lebih dari 10 menit atau belum pernah dapat
       final isLocationStale = _locationTimestamp == null ||
           DateTime.now().difference(_locationTimestamp!) > const Duration(minutes: 10);
-      if (isLocationStale) fetchCurrentLocation();
+      if (isLocationStale) _fetchCurrentLocation();
     }
   }
 
@@ -76,7 +80,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     super.onClose();
   }
 
-  Future<void> fetchCurrentLocation() async {
+  Future<void> _fetchCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -125,8 +129,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         currentAddress.value = 'Alamat tidak ditemukan';
       }
     } catch (e) {
-      AppNotifier.error("Error", "Gagal ambil lokasi: $e");
-      currentAddress.value = "Gagal mendapatkan alamat";
+      AppNotifier.error('Gagal', 'Gagal mengambil lokasi: $e');
+      currentAddress.value = 'Gagal mendapatkan alamat';
     }
   }
 
@@ -217,7 +221,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> refreshWithDelay() async {
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(_kAfterActionDelay);
     await refreshSessionStatus();
   }
 
@@ -237,16 +241,16 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> toggleCheckInOut() async {
-    if (activeAction.value.isNotEmpty) return;
+    if (activeAction.value != DriverAction.none) return;
     final status = checkInStatus.value;
 
     // Set aksi spesifik agar view bisa menampilkan spinner di tombol yang tepat
     if (status == 'pending_payment') {
-      activeAction.value = 'retry';
+      activeAction.value = DriverAction.retry;
     } else if (status == 'standby') {
-      activeAction.value = 'checkout';
+      activeAction.value = DriverAction.checkout;
     } else {
-      activeAction.value = 'checkin';
+      activeAction.value = DriverAction.checkin;
     }
 
     try {
@@ -262,7 +266,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     } catch (e) {
       AppNotifier.error('Error', 'Gagal proses: $e');
     } finally {
-      activeAction.value = '';
+      activeAction.value = DriverAction.none;
     }
   }
 
@@ -371,27 +375,27 @@ class HomeController extends GetxController with WidgetsBindingObserver {
 
   /// Dipanggil dari SwipeButton Return saat status on_duty
   Future<void> returnToStandby() async {
-    if (activeAction.value.isNotEmpty) return;
-    activeAction.value = 'return';
+    if (activeAction.value != DriverAction.none) return;
+    activeAction.value = DriverAction.returnStandby;
     try {
       await _doReturnToStandby();
     } catch (e) {
       AppNotifier.error('Error', 'Gagal proses: $e');
     } finally {
-      activeAction.value = '';
+      activeAction.value = DriverAction.none;
     }
   }
 
   /// Dipanggil dari SwipeButton Check-Out saat status on_duty
   Future<void> checkOutFromDuty() async {
-    if (activeAction.value.isNotEmpty) return;
-    activeAction.value = 'checkout';
+    if (activeAction.value != DriverAction.none) return;
+    activeAction.value = DriverAction.checkout;
     try {
       await _doCheckOut();
     } catch (e) {
       AppNotifier.error('Error', 'Gagal proses: $e');
     } finally {
-      activeAction.value = '';
+      activeAction.value = DriverAction.none;
     }
   }
 
@@ -439,41 +443,33 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _handleSnapPaymentResult(dynamic result) async {
-    // null = user tekan back tanpa ada navigation result (Android back button)
-    if (result == null) {
-      await refreshSessionStatus();
-      return;
-    }
-    if (result == 'success') {
-      await refreshSessionStatus();
-      AppNotifier.success(
-        'Pembayaran Berhasil',
-        'Sesi kerja kamu sudah aktif.',
-        duration: const Duration(seconds: 5),
-      );
-      return;
-    }
-    if (result == 'pending') {
-      AppNotifier.warning(
-        'Pembayaran Pending',
-        'Transaksi masih diproses. Cek kembali beberapa saat lagi.',
-      );
-      return;
-    }
-    if (result == 'failed') {
-      AppNotifier.error(
-        'Pembayaran Gagal',
-        'Transaksi tidak berhasil. Silakan coba lagi.',
-      );
-      await refreshSessionStatus();
-      return;
-    }
-    if (result == 'closed') {
-      AppNotifier.warning(
-        'Pembayaran Dibatalkan',
-        'Kamu menutup halaman pembayaran sebelum selesai.',
-      );
-      await refreshSessionStatus();
+    switch (result) {
+      case null: // user tekan back tanpa navigation result (Android back button)
+        await refreshSessionStatus();
+      case 'success':
+        await refreshSessionStatus();
+        AppNotifier.success(
+          'Pembayaran Berhasil',
+          'Sesi kerja kamu sudah aktif.',
+          duration: const Duration(seconds: 5),
+        );
+      case 'pending':
+        AppNotifier.warning(
+          'Pembayaran Pending',
+          'Transaksi masih diproses. Cek kembali beberapa saat lagi.',
+        );
+      case 'failed':
+        AppNotifier.error(
+          'Pembayaran Gagal',
+          'Transaksi tidak berhasil. Silakan coba lagi.',
+        );
+        await refreshSessionStatus();
+      case 'closed':
+        AppNotifier.warning(
+          'Pembayaran Dibatalkan',
+          'Kamu menutup halaman pembayaran sebelum selesai.',
+        );
+        await refreshSessionStatus();
     }
   }
 

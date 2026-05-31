@@ -1,6 +1,6 @@
 import 'package:cico_project/core/style/app_colors.dart';
 import 'package:cico_project/core/utils/status_helper.dart';
-import 'package:cico_project/home/controllers/home_controller.dart';
+import 'package:cico_project/home/controllers/home_controller.dart'; // juga mengekspor DriverAction
 import 'package:flutter/material.dart';
 import 'package:flutter_swipe_button/flutter_swipe_button.dart';
 import 'package:get/get.dart';
@@ -75,14 +75,14 @@ class HomeScreen extends GetView<HomeController> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Obx(() {
-        final action = controller.activeAction.value; // '' | 'return' | 'checkout' | 'checkin' | 'retry'
+        final action = controller.activeAction.value; // DriverAction enum
         final status = controller.checkInStatus.value;
-        final anyBusy = action.isNotEmpty;
+        final anyBusy = action != DriverAction.none;
 
         // ON DUTY: dua swipe button — masing-masing tahu aksinya sendiri
         if (status == 'on_duty') {
-          final returningNow = action == 'return';
-          final checkingOutNow = action == 'checkout';
+          final returningNow = action == DriverAction.returnStandby;
+          final checkingOutNow = action == DriverAction.checkout;
 
           return Column(
             mainAxisSize: MainAxisSize.min,

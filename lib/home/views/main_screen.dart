@@ -2,6 +2,7 @@ import 'package:cico_project/core/style/app_colors.dart';
 import 'package:cico_project/history/controllers/history_controller.dart';
 import 'package:cico_project/history/views/history_screen.dart';
 import 'package:cico_project/home/views/home_screen.dart';
+import 'package:cico_project/profile/controllers/profile_controller.dart';
 import 'package:cico_project/profile/views/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -23,9 +24,10 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   void _onTabTap(int index) {
-    // Refresh History saat user berpindah ke tab tersebut
-    if (index == 1 && _currentIndex != 1) {
-      Get.find<HistoryController>().loadHistory();
+    if (index != _currentIndex) {
+      // Refresh data saat user berpindah tab
+      if (index == 1) Get.find<HistoryController>().loadHistory();
+      if (index == 2) Get.find<ProfileController>().loadProfile();
     }
     setState(() => _currentIndex = index);
   }
