@@ -152,7 +152,7 @@ class HomeScreen extends GetView<HomeController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('CHECK-IN LOCATION',
+                const Text('LOCATION',
                     style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, letterSpacing: 1.4, color: AppColors.muted)),
                 const SizedBox(height: 1),
                 Text(
