@@ -402,56 +402,64 @@ class HomeScreen extends GetView<HomeController> {
               child: CircularProgressIndicator(color: color, strokeWidth: 2),
             )
           : Icon(icon, color: color), // colored icon on white knob
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Dashed lines + label row (centered)
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            alignment: Alignment.center,
             children: [
-              Expanded(
-                child: CustomPaint(
-                  painter: _DashedLinePainter(
-                    color: Colors.white.withValues(alpha: 0.4),
-                  ),
-                  child: const SizedBox(height: 2),
+              // Dashed lines + label row — sized to full track width
+              SizedBox(
+                width: constraints.maxWidth,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CustomPaint(
+                        painter: _DashedLinePainter(
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
+                        child: const SizedBox(height: 2),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: CustomPaint(
+                        painter: _DashedLinePainter(
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
+                        child: const SizedBox(height: 2),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  letterSpacing: 0.6,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomPaint(
-                  painter: _DashedLinePainter(
-                    color: Colors.white.withValues(alpha: 0.4),
-                  ),
-                  child: const SizedBox(height: 2),
+              // >>> chevron hint on right
+              Positioned(
+                right: 14,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(3, (i) => Padding(
+                    padding: EdgeInsets.only(left: i > 0 ? -4 : 0),
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: compact ? 13 : 15,
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+                  )),
                 ),
               ),
             ],
-          ),
-          // >>> chevron hint on right
-          Positioned(
-            right: 14,
-            child: Row(
-              children: List.generate(3, (i) => Padding(
-                padding: EdgeInsets.only(left: i > 0 ? -4 : 0),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  size: compact ? 13 : 15,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-              )),
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
