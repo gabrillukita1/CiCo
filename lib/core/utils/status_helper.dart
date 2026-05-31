@@ -4,8 +4,8 @@ import 'package:cico_project/core/style/app_colors.dart';
 class DriverStatusInfo {
   final Color color;
   final IconData icon;
-  final String label;       // singkat, untuk badge
-  final String displayText; // UPPERCASE, untuk status visual besar
+  final String label;
+  final String displayText;
 
   const DriverStatusInfo({
     required this.color,
@@ -23,55 +23,61 @@ class StatusHelper {
     switch (status) {
       case 'on_duty':
         return const DriverStatusInfo(
-          color: AppColors.active,
-          icon: Icons.check_circle_rounded,
-          label: 'Bertugas',
+          color: AppColors.ok,
+          icon: Icons.directions_car_rounded,
+          label: 'On Duty',
           displayText: 'ON DUTY',
         );
       case 'standby':
         return const DriverStatusInfo(
-          color: AppColors.standby,
+          color: AppColors.info,
           icon: Icons.access_time_rounded,
           label: 'Standby',
           displayText: 'STANDBY',
         );
       case 'pending_payment':
         return const DriverStatusInfo(
-          color: AppColors.waiting,
-          icon: Icons.hourglass_empty_rounded,
-          label: 'Menunggu Pembayaran',
+          color: AppColors.warn,
+          icon: Icons.payment_rounded,
+          label: 'Pending Payment',
           displayText: 'PENDING PAYMENT',
         );
       case 'offline':
       default:
         return const DriverStatusInfo(
-          color: AppColors.inactive,
-          icon: Icons.cancel_rounded,
+          color: AppColors.danger,
+          icon: Icons.power_settings_new_rounded,
           label: 'Offline',
           displayText: 'OFFLINE',
         );
     }
   }
 
-  /// Status sesi di History (berbeda dari status driver aktif)
+  /// Status sesi di History
   static DriverStatusInfo ofSession(String status) {
     switch (status) {
       case 'active':
         return const DriverStatusInfo(
-          color: AppColors.active,
+          color: AppColors.ok,
           icon: Icons.radio_button_checked_rounded,
-          label: 'Aktif',
-          displayText: 'AKTIF',
+          label: 'Active',
+          displayText: 'ACTIVE',
+        );
+      case 'completed':
+        return const DriverStatusInfo(
+          color: AppColors.brand600,
+          icon: Icons.check_circle_rounded,
+          label: 'Completed',
+          displayText: 'COMPLETED',
         );
       case 'expired':
         return const DriverStatusInfo(
-          color: AppColors.textSub,
+          color: AppColors.muted,
           icon: Icons.cancel_outlined,
-          label: 'Kedaluwarsa',
-          displayText: 'KEDALUWARSA',
+          label: 'Expired',
+          displayText: 'EXPIRED',
         );
       default:
-        // pending_payment, dll — gunakan mapping driver
         return of(status);
     }
   }

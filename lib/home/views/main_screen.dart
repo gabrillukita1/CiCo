@@ -25,7 +25,6 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onTabTap(int index) {
     if (index != _currentIndex) {
-      // Refresh data saat user berpindah tab
       if (index == 1) Get.find<HistoryController>().loadHistory();
       if (index == 2) Get.find<ProfileController>().loadProfile();
     }
@@ -34,40 +33,83 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: IndexedStack(index: _currentIndex, children: _screens),
+      bottomNavigationBar: _buildNav(bottomPadding),
+    );
+  }
+
+  Widget _buildNav(double bottomPadding) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.line, width: 1)),
+        boxShadow: [
+          BoxShadow(color: Color(0x1A0B262E), blurRadius: 30, offset: Offset(0, -10)),
+        ],
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.border, width: 0.8)),
+      child: Padding(
+        padding: EdgeInsets.only(top: 8, bottom: bottomPadding > 0 ? bottomPadding : 16),
+        child: Row(
+          children: [
+            _NavItem(icon: Icons.home_rounded,    label: 'Home',    index: 0, active: _currentIndex, onTap: _onTabTap),
+            _NavItem(icon: Icons.history_rounded, label: 'History', index: 1, active: _currentIndex, onTap: _onTabTap),
+            _NavItem(icon: Icons.person_rounded,  label: 'Profile', index: 2, active: _currentIndex, onTap: _onTabTap),
+          ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onTabTap,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSub,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          type: BottomNavigationBarType.fixed,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 11,
-          ),
-          unselectedLabelStyle: const TextStyle(fontSize: 11),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_rounded),
-              label: 'Home',
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int index;
+  final int active;
+  final void Function(int) onTap;
+
+  const _NavItem({
+    required this.icon, required this.label, required this.index,
+    required this.active, required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final on = index == active;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onTap(index),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 34,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (on)
+                    Container(
+                      width: 52, height: 30,
+                      decoration: BoxDecoration(
+                        color: AppColors.brandTint,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  Icon(icon, size: 23, color: on ? AppColors.primary : const Color(0xFF9AA8AC)),
+                ],
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history_rounded),
-              label: 'History',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_rounded),
-              label: 'Profil',
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+                color: on ? AppColors.primary : const Color(0xFF9AA8AC),
+              ),
             ),
           ],
         ),
