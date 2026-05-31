@@ -41,7 +41,7 @@ class CicoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary, brightness: Brightness.light),
         scaffoldBackgroundColor: AppColors.background,
         textTheme: GoogleFonts.hankenGroteskTextTheme(),
       ),
