@@ -391,6 +391,7 @@ class HomeScreen extends GetView<HomeController> {
     final h = compact ? 58.0 : 68.0;
 
     return Container(
+      height: h,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(h),
         boxShadow: disabled
@@ -426,14 +427,14 @@ class HomeScreen extends GetView<HomeController> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 44, height: 2,
+              width: 48, height: 2,
               child: CustomPaint(
                 painter: _DashedLinePainter(
                   color: Colors.white.withValues(alpha: 0.40),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Text(
               label,
               style: TextStyle(
@@ -443,26 +444,14 @@ class HomeScreen extends GetView<HomeController> {
                 letterSpacing: 0.8,
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             SizedBox(
-              width: 44, height: 2,
+              width: 48, height: 2,
               child: CustomPaint(
                 painter: _DashedLinePainter(
                   color: Colors.white.withValues(alpha: 0.40),
                 ),
               ),
-            ),
-            const SizedBox(width: 6),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(3, (i) => Transform.translate(
-                offset: Offset(i * -3.0, 0),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  size: compact ? 12 : 14,
-                  color: Colors.white.withValues(alpha: 0.55),
-                ),
-              )),
             ),
           ],
         ),
