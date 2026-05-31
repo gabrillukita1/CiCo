@@ -389,77 +389,83 @@ class HomeScreen extends GetView<HomeController> {
     required bool compact,
   }) {
     final h = compact ? 58.0 : 68.0;
-    return SwipeButton.expand(
-      height: h,
-      // Colored track (full background), white knob — matches Claude Design
-      activeTrackColor: color,
-      activeThumbColor: Colors.white,
-      elevationThumb: 3,
-      onSwipe: (disabled || isBusy) ? null : onSwipe,
-      thumb: isBusy
-          ? SizedBox(
-              width: 18, height: 18,
-              child: CircularProgressIndicator(color: color, strokeWidth: 2),
-            )
-          : Icon(icon, color: color), // colored icon on white knob
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              // Dashed lines + label row — sized to full track width
-              SizedBox(
-                width: constraints.maxWidth,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: CustomPaint(
-                        painter: _DashedLinePainter(
-                          color: Colors.white.withValues(alpha: 0.4),
-                        ),
-                        child: const SizedBox(height: 2),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CustomPaint(
-                        painter: _DashedLinePainter(
-                          color: Colors.white.withValues(alpha: 0.4),
-                        ),
-                        child: const SizedBox(height: 2),
-                      ),
-                    ),
-                  ],
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(h),
+        boxShadow: disabled
+            ? []
+            : [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.38),
+                  blurRadius: 18,
+                  spreadRadius: -4,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+      ),
+      child: SwipeButton.expand(
+        height: h,
+        activeTrackColor: color,
+        inactiveTrackColor: color.withValues(alpha: 0.45),
+        activeThumbColor: Colors.white,
+        inactiveThumbColor: Colors.white.withValues(alpha: 0.65),
+        thumbPadding: const EdgeInsets.all(4),
+        elevationThumb: 5,
+        elevationTrack: 0,
+        duration: const Duration(milliseconds: 200),
+        onSwipe: (disabled || isBusy) ? null : onSwipe,
+        thumb: isBusy
+            ? SizedBox(
+                width: 18, height: 18,
+                child: CircularProgressIndicator(color: color, strokeWidth: 2.2),
+              )
+            : Icon(icon, color: color, size: compact ? 22 : 24),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 44, height: 2,
+              child: CustomPaint(
+                painter: _DashedLinePainter(
+                  color: Colors.white.withValues(alpha: 0.40),
                 ),
               ),
-              // >>> chevron hint on right
-              Positioned(
-                right: 14,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(3, (i) => Padding(
-                    padding: EdgeInsets.only(left: i > 0 ? -4 : 0),
-                    child: Icon(
-                      Icons.chevron_right_rounded,
-                      size: compact ? 13 : 15,
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  )),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: disabled ? 0.55 : 1.0),
+                fontWeight: FontWeight.w800,
+                fontSize: compact ? 13 : 14,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 44, height: 2,
+              child: CustomPaint(
+                painter: _DashedLinePainter(
+                  color: Colors.white.withValues(alpha: 0.40),
                 ),
               ),
-            ],
-          );
-        },
+            ),
+            const SizedBox(width: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(3, (i) => Transform.translate(
+                offset: Offset(i * -3.0, 0),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  size: compact ? 12 : 14,
+                  color: Colors.white.withValues(alpha: 0.55),
+                ),
+              )),
+            ),
+          ],
+        ),
       ),
     );
   }
