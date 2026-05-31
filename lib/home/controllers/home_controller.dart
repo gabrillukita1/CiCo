@@ -84,14 +84,14 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        AppNotifier.warning("Lokasi", "Lokasi tidak aktif");
+        AppNotifier.warning('Lokasi', 'Lokasi tidak aktif');
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          AppNotifier.warning("Lokasi", "Izin lokasi ditolak");
+          AppNotifier.warning('Lokasi', 'Izin lokasi ditolak');
           return;
         }
       }
@@ -332,7 +332,9 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     // 4. Buka payment jika ada redirectUrl, atau refresh status langsung
     final redirectUrl = _extractRedirectUrl(res);
     if (redirectUrl.isNotEmpty) {
-      await refreshSessionStatus();
+      // Langsung buka payment — tidak perlu refresh dulu karena status
+      // sudah pasti 'pending_payment' setelah check-in berhasil.
+      // Refresh dilakukan di _handleSnapPaymentResult setelah payment selesai.
       final result = await Get.to(() => SnapPaymentPage(redirectUrl: redirectUrl));
       await _handleSnapPaymentResult(result);
     } else {
