@@ -216,7 +216,7 @@ class LoginScreen extends GetView<LoginController> {
                             color: Colors.white, strokeWidth: 2.5,
                           ),
                         )
-                      else ...[
+                      else
                         const Text(
                           'Sign In',
                           style: TextStyle(
@@ -225,13 +225,6 @@ class LoginScreen extends GetView<LoginController> {
                             fontSize: 16.5,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.keyboard_double_arrow_right_rounded,
-                          color: Color(0xFF9FE9ED),
-                          size: 20,
-                        ),
-                      ],
                     ],
                   ),
                 ),
