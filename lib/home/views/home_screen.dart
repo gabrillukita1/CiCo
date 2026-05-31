@@ -296,7 +296,6 @@ class HomeScreen extends GetView<HomeController> {
                 const SizedBox(height: 20),
                 _PerforatedDivider(
                   lineColor: Colors.white.withValues(alpha: 0.32),
-                  notchColor: AppColors.background,
                 ),
                 // Footer
                 Padding(
@@ -518,11 +517,13 @@ class _StageFooter extends StatelessWidget {
 // ── Perforated divider ─────────────────────────────────────────────────────────
 class _PerforatedDivider extends StatelessWidget {
   final Color lineColor;
-  final Color notchColor;
-  const _PerforatedDivider({required this.lineColor, required this.notchColor});
+  /// Warna notch — default otomatis pakai scaffoldBackgroundColor dari Theme.
+  final Color? notchColor;
+  const _PerforatedDivider({required this.lineColor, this.notchColor});
 
   @override
   Widget build(BuildContext context) {
+    final color = notchColor ?? Theme.of(context).scaffoldBackgroundColor;
     return SizedBox(
       height: 22,
       child: Stack(
@@ -530,8 +531,8 @@ class _PerforatedDivider extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Positioned.fill(child: CustomPaint(painter: _DashedLinePainter(color: lineColor))),
-          Positioned(left: -11, child: _Notch(color: notchColor)),
-          Positioned(right: -11, child: _Notch(color: notchColor)),
+          Positioned(left: -11, child: _Notch(color: color)),
+          Positioned(right: -11, child: _Notch(color: color)),
         ],
       ),
     );
