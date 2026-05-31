@@ -13,7 +13,7 @@ class HistoryController extends GetxController {
   final isLoadingMore = false.obs;
   final hasMore = true.obs;
 
-  final selectedFilter = DateFilter.all.obs;
+  final selectedFilter = DateFilter.today.obs;
   final customStart = Rxn<DateTime>();
   final customEnd = Rxn<DateTime>();
 
@@ -76,10 +76,10 @@ class HistoryController extends GetxController {
         final totalPages = res['totalPages'] as int? ?? 1;
         hasMore.value = _currentPage < totalPages;
       } else {
-        AppNotifier.error('Gagal', 'Tidak dapat memuat riwayat sesi.');
+        AppNotifier.error('Riwayat', 'Tidak dapat dimuat. Coba lagi.');
       }
     } catch (e) {
-      AppNotifier.error('Error', 'Terjadi kesalahan: $e');
+      AppNotifier.error('Riwayat', 'Terjadi kesalahan. Coba lagi.');
     } finally {
       isLoading.value = false;
     }
@@ -106,11 +106,11 @@ class HistoryController extends GetxController {
         hasMore.value = _currentPage < totalPages;
       } else {
         _currentPage--;
-        AppNotifier.error('Gagal', 'Tidak dapat memuat data selanjutnya.');
+        AppNotifier.error('Riwayat', 'Tidak dapat memuat data selanjutnya.');
       }
     } catch (e) {
       _currentPage--;
-      AppNotifier.error('Error', 'Terjadi kesalahan: $e');
+      AppNotifier.error('Riwayat', 'Terjadi kesalahan. Coba lagi.');
     } finally {
       isLoadingMore.value = false;
     }

@@ -20,11 +20,11 @@ class ProfileController extends GetxController {
     try {
       final data = await _authService.getProfile();
       if (data == null) {
-        AppNotifier.error('Gagal', 'Tidak dapat memuat profil. Coba lagi.');
+        AppNotifier.error('Profil', 'Tidak dapat dimuat. Coba lagi.');
       }
       profile.value = data;
     } catch (e) {
-      AppNotifier.error('Error', 'Terjadi kesalahan: $e');
+      AppNotifier.error('Profil', 'Terjadi kesalahan. Coba lagi.');
     } finally {
       isLoading.value = false;
     }

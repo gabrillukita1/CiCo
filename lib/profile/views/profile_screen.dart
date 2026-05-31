@@ -1,7 +1,9 @@
 import 'package:cico_project/core/style/app_colors.dart';
 import 'package:cico_project/core/utils/status_helper.dart';
+import 'package:cico_project/core/widgets/app_notifier.dart';
 import 'package:cico_project/profile/controllers/profile_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -78,7 +80,6 @@ class ProfileScreen extends GetView<ProfileController> {
                     _buildDriverIdCard(p),
                     const SizedBox(height: 16),
                     _SectionCard(
-                      icon: Icons.shield_rounded,
                       title: 'Account',
                       children: [
                         _InfoRow(icon: Icons.alternate_email_rounded, label: 'EMAIL', value: p['email'] ?? '-'),
@@ -87,7 +88,6 @@ class ProfileScreen extends GetView<ProfileController> {
                     ),
                     const SizedBox(height: 14),
                     _SectionCard(
-                      icon: Icons.directions_car_rounded,
                       title: 'Vehicle',
                       children: [
                         _InfoRow(icon: Icons.pin_rounded, label: 'PLATE NUMBER', value: p['vehicleNumber'] ?? '-', mono: true),
@@ -252,31 +252,19 @@ class ProfileScreen extends GetView<ProfileController> {
                       ],
                     ),
                     const SizedBox(height: 22),
-                    // Plate + barcode
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                    // Plate number
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('PLATE NUMBER',
-                                style: TextStyle(color: Colors.white54, fontSize: 9.5,
-                                    fontWeight: FontWeight.w700, letterSpacing: 1.4)),
-                              const SizedBox(height: 4),
-                              Text(plate,
-                                style: GoogleFonts.spaceGrotesk(
-                                  color: Colors.white, fontWeight: FontWeight.w700,
-                                  fontSize: 25, letterSpacing: 1.2,
-                                ),
-                              ),
-                            ],
+                        const Text('PLATE NUMBER',
+                          style: TextStyle(color: Colors.white54, fontSize: 9.5,
+                              fontWeight: FontWeight.w700, letterSpacing: 1.4)),
+                        const SizedBox(height: 4),
+                        Text(plate,
+                          style: GoogleFonts.spaceGrotesk(
+                            color: Colors.white, fontWeight: FontWeight.w700,
+                            fontSize: 25, letterSpacing: 1.2,
                           ),
-                        ),
-                        // Barcode visual
-                        CustomPaint(
-                          size: const Size(84, 34),
-                          painter: _BarcodePainter(),
                         ),
                       ],
                     ),
@@ -295,9 +283,23 @@ class ProfileScreen extends GetView<ProfileController> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('ID · DRV-2026-0001',
-                      style: GoogleFonts.spaceGrotesk(
-                          color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600)),
+                    GestureDetector(
+                      onTap: () {
+                        final id = '${p['id'] ?? '-'}';
+                        Clipboard.setData(ClipboardData(text: id));
+                        AppNotifier.info('ID Disalin', 'ID driver berhasil disalin ke clipboard.');
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('ID · ${p['id'] ?? '-'}',
+                            style: GoogleFonts.spaceGrotesk(
+                                color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 5),
+                          const Icon(Icons.copy_rounded, size: 11, color: Colors.white38),
+                        ],
+                      ),
+                    ),
                     Text('VALID',
                       style: GoogleFonts.spaceGrotesk(
                           color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600)),
@@ -314,11 +316,11 @@ class ProfileScreen extends GetView<ProfileController> {
 
 // ── Section card ───────────────────────────────────────────────────────────────
 class _SectionCard extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
   final String title;
   final List<Widget> children;
 
-  const _SectionCard({required this.icon, required this.title, required this.children});
+  const _SectionCard({this.icon, required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -333,13 +335,9 @@ class _SectionCard extends StatelessWidget {
           // Section header
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.lineSoft)),
-              ),
-              child: Row(
-                children: [
+            child: Row(
+              children: [
+                if (icon != null) ...[
                   Container(
                     width: 34, height: 34,
                     decoration: BoxDecoration(
@@ -349,12 +347,16 @@ class _SectionCard extends StatelessWidget {
                     child: Icon(icon, size: 17, color: AppColors.primary),
                   ),
                   const SizedBox(width: 11),
-                  Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: AppColors.ink)),
                 ],
-              ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Text(title,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5, color: AppColors.ink)),
+                ),
+              ],
             ),
           ),
+          const Divider(height: 1, thickness: 1, color: AppColors.lineSoft),
           // Rows
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 4, 18, 6),

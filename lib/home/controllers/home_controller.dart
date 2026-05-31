@@ -129,7 +129,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         currentAddress.value = 'Alamat tidak ditemukan';
       }
     } catch (e) {
-      AppNotifier.error('Gagal', 'Gagal mengambil lokasi: $e');
+      AppNotifier.error('Lokasi', 'Gagal mengambil lokasi. Coba lagi.');
       currentAddress.value = 'Gagal mendapatkan alamat';
     }
   }
@@ -264,7 +264,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       }
       await _doCheckIn();
     } catch (e) {
-      AppNotifier.error('Error', 'Gagal proses: $e');
+      AppNotifier.error('Terjadi Kesalahan', 'Gagal memproses permintaan.');
     } finally {
       activeAction.value = DriverAction.none;
     }
@@ -359,7 +359,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     );
     if (!AuthService.isSuccess(res)) {
       AppNotifier.error(
-        'Gagal',
+        'Pembayaran',
         AuthService.extractMessage(res?['message'], fallback: 'Gagal mendapatkan halaman pembayaran'),
       );
       return;
@@ -382,7 +382,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     try {
       await _doReturnToStandby();
     } catch (e) {
-      AppNotifier.error('Error', 'Gagal proses: $e');
+      AppNotifier.error('Terjadi Kesalahan', 'Gagal memproses permintaan.');
     } finally {
       activeAction.value = DriverAction.none;
     }
@@ -395,7 +395,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     try {
       await _doCheckOut();
     } catch (e) {
-      AppNotifier.error('Error', 'Gagal proses: $e');
+      AppNotifier.error('Terjadi Kesalahan', 'Gagal memproses permintaan.');
     } finally {
       activeAction.value = DriverAction.none;
     }
@@ -417,7 +417,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     }
 
     checkInStatus.value = 'standby';
-    AppNotifier.success('Berhasil',
+    AppNotifier.success('Kembali ke Standby',
         AuthService.extractMessage(res?['message'], fallback: 'Kamu sudah kembali ke standby'));
     await refreshWithDelay();
   }
@@ -505,8 +505,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       await _loadCheckInStatus();
     } catch (e) {
       AppNotifier.error(
-        'Error',
-        'Gagal refresh status',
+        'Refresh Gagal',
+        'Tidak dapat memperbarui status.',
       );
     }
   }

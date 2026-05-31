@@ -7,16 +7,16 @@ enum AppNoticeType { success, error, warning, info }
 class AppNotifier {
   const AppNotifier._();
 
-  static void success(String title, String message, {Duration duration = const Duration(seconds: 1, milliseconds: 500)}) => 
+  static void success(String title, String message, {Duration duration = const Duration(seconds: 2)}) =>
       _show(title, message, type: AppNoticeType.success, duration: duration);
 
-  static void error(String title, String message, {Duration duration = const Duration(seconds: 1, milliseconds: 500)}) => 
+  static void error(String title, String message, {Duration duration = const Duration(seconds: 2)}) =>
       _show(title, message, type: AppNoticeType.error, duration: duration);
 
-  static void warning(String title, String message, {Duration duration = const Duration(seconds: 1, milliseconds: 500)}) => 
+  static void warning(String title, String message, {Duration duration = const Duration(seconds: 2)}) =>
       _show(title, message, type: AppNoticeType.warning, duration: duration);
 
-  static void info(String title, String message, {Duration duration = const Duration(seconds: 1, milliseconds: 500)}) => 
+  static void info(String title, String message, {Duration duration = const Duration(seconds: 2)}) =>
       _show(title, message, type: AppNoticeType.info, duration: duration);
 
   static void _show(
@@ -61,7 +61,7 @@ class AppNotifier {
         ),
         child: Icon(style.icon, color: Colors.white, size: 22),
       ),
-      shouldIconPulse: true,
+      shouldIconPulse: false,
       backgroundColor: style.backgroundColor.withValues(alpha: 0.95),
       colorText: Colors.white,
       duration: duration,
@@ -74,7 +74,6 @@ class AppNotifier {
           offset: const Offset(0, 12),
         ),
       ],
-      overlayBlur: 1.2,
       mainButton: TextButton(
         onPressed: () => Get.back(),
         child: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
@@ -194,7 +193,7 @@ class AppNotifier {
         );
       case AppNoticeType.info:
         return const _AppNoticeStyle(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.panelInk,
           icon: Icons.info_rounded,
         );
     }

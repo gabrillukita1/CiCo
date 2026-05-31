@@ -35,3 +35,21 @@ String formatFullDate(dynamic value, {String fallback = '—'}) {
   if (dt == null) return fallback;
   return DateFormat('EEE, dd MMM yyyy').format(dt);
 }
+
+String formatDateRange(dynamic checkin, dynamic checkout, {String fallback = ''}) {
+  final ci = toJakarta(checkin);
+  if (ci == null) return fallback;
+  final co = toJakarta(checkout);
+  if (co == null) return DateFormat('d MMM yyyy').format(ci);
+
+  final sameDay = ci.year == co.year && ci.month == co.month && ci.day == co.day;
+  if (sameDay) return DateFormat('d MMM yyyy').format(ci);
+
+  final sameMonth = ci.year == co.year && ci.month == co.month;
+  if (sameMonth) return '${ci.day} - ${DateFormat('d MMM yyyy').format(co)}';
+
+  final sameYear = ci.year == co.year;
+  if (sameYear) return '${DateFormat('d MMM').format(ci)} - ${DateFormat('d MMM yyyy').format(co)}';
+
+  return '${DateFormat('d MMM yyyy').format(ci)} - ${DateFormat('d MMM yyyy').format(co)}';
+}

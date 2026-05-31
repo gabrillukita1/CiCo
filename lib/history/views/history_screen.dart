@@ -286,11 +286,12 @@ class _SessionCardState extends State<_SessionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final status = widget.session['status'] as String? ?? 'expired';
+    final rawStatus = widget.session['status'] as String? ?? 'expired';
     final payment = widget.session['payment'] as Map<String, dynamic>?;
     final dispatches = (widget.session['dispatches'] as List? ?? []).cast<Map<String, dynamic>>();
     final payStatus = payment?['status'] as String? ?? '';
     final isFaded = payStatus != 'success' && payStatus != 'pending' && payStatus.isNotEmpty;
+    final status = (rawStatus == 'expired' && payStatus == 'success') ? 'completed' : rawStatus;
     final info = StatusHelper.ofSession(status);
 
     return Opacity(
@@ -322,7 +323,8 @@ class _SessionCardState extends State<_SessionCard> {
                   Text(info.label,
                       style: TextStyle(color: info.color, fontWeight: FontWeight.w800, fontSize: 14.5)),
                   const Spacer(),
-                  Text(tz.formatDate(widget.session['checkinAt']),
+                  Text(
+                      tz.formatDateRange(widget.session['checkinAt'], widget.session['checkoutAt']),
                       style: GoogleFonts.spaceGrotesk(
                           fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.muted)),
                 ],
@@ -343,7 +345,7 @@ class _SessionCardState extends State<_SessionCard> {
                         Icon(Icons.keyboard_double_arrow_right_rounded,
                             size: 18, color: isFaded ? AppColors.line : info.color),
                         const SizedBox(height: 3),
-                        if (_duration(widget.session['checkinAt'], widget.session['checkoutAt']) != null)
+                        if (status != 'expired' && _duration(widget.session['checkinAt'], widget.session['checkoutAt']) != null)
                           Text(
                             _duration(widget.session['checkinAt'], widget.session['checkoutAt'])!,
                             style: GoogleFonts.spaceGrotesk(
