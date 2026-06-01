@@ -1,4 +1,4 @@
-package com.example.cico_project
+package com.cico.driver
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
