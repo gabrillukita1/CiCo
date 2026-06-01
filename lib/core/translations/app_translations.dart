@@ -142,6 +142,10 @@ class AppTranslations extends Translations {
     'payment_retry_label': 'Pembayaran',
     'payment_no_url': 'URL pembayaran tidak ditemukan.',
 
+    // ── Dispatch ──────────────────────────────────────────────────────────────
+    'dispatched_title': 'Kamu Sudah Dispatched!',
+    'dispatched_msg': 'Kamu sekarang sedang bertugas. Berkendara aman.',
+
     // ── Check-in / Check-out ──────────────────────────────────────────────────
     'checkin_success_title': 'Check-In Berhasil',
     'checkin_success_msg': 'Sesi langsung aktif',
@@ -317,6 +321,10 @@ class AppTranslations extends Translations {
     'payment_cancelled_msg': 'You closed the payment page before completing.',
     'payment_retry_label': 'Payment',
     'payment_no_url': 'Payment URL not found.',
+
+    // ── Dispatch ──────────────────────────────────────────────────────────────
+    'dispatched_title': "You've Been Dispatched!",
+    'dispatched_msg': "You're now on duty. Drive safe.",
 
     // ── Check-in / Check-out ──────────────────────────────────────────────────
     'checkin_success_title': 'Check-In Successful',

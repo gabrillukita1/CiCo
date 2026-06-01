@@ -196,12 +196,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         });
       }
 
-      // Notifikasi transisi ke on_duty
+      // Notifikasi transisi ke on_duty (admin dispatch)
       if (previousStatus != 'on_duty' && checkInStatus.value == 'on_duty') {
         AppNotifier.success(
-          'payment_active_title'.tr,
-          'payment_active_msg'.tr,
-          duration: const Duration(seconds: 5),
+          'dispatched_title'.tr,
+          'dispatched_msg'.tr,
         );
       }
     } finally {
@@ -297,7 +296,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       AppNotifier.error(
         'loc_unavailable_title'.tr,
         'loc_unavailable_msg'.tr,
-        duration: const Duration(seconds: 5),
       );
       return null;
     }
@@ -458,7 +456,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         AppNotifier.success(
           'payment_active_title'.tr,
           'payment_active_msg'.tr,
-          duration: const Duration(seconds: 5),
         );
       case 'pending':
         AppNotifier.warning(
@@ -491,7 +488,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         AppNotifier.warning(
           'verify_failed_title'.tr,
           'verify_failed_msg'.tr,
-          duration: const Duration(seconds: 4),
         );
       }
       return authenticated;
@@ -499,7 +495,6 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       AppNotifier.error(
         'biometric_error_title'.tr,
         'Gagal memverifikasi identitas: ${e.toString().split('\n').first}',
-        duration: const Duration(seconds: 5),
       );
       return false;
     }
