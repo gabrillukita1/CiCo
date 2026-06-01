@@ -570,19 +570,16 @@ class _SessionCardState extends State<_SessionCard> {
                             ],
                           ),
                         ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Text('Dispatch at',
-                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
-                                      letterSpacing: 1.4, color: AppColors.muted)),
-                              Text(time,
-                                  style: TextStyle(fontFamily: 'SpaceGrotesk',
-                                      fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink),
-                                  overflow: TextOverflow.ellipsis),
-                            ],
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text('Dispatch at',
+                                style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.4, color: AppColors.muted)),
+                            Text(tz.formatTime(d['dispatchedAt']),
+                                style: TextStyle(fontFamily: 'SpaceGrotesk',
+                                    fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.ink)),
+                          ],
                         ),
                       ],
                     ),

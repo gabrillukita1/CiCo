@@ -9,8 +9,8 @@ class LoginScreen extends GetView<LoginController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      resizeToAvoidBottomInset: false,
+      backgroundColor: AppColors.brand700,
+      resizeToAvoidBottomInset: true,
       body: Column(
         children: [
           _buildStage(context),
@@ -26,8 +26,8 @@ class LoginScreen extends GetView<LoginController> {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [AppColors.primary, AppColors.brand700],
         ),
       ),
@@ -52,18 +52,32 @@ class LoginScreen extends GetView<LoginController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // "Driver Terminal" label
+                // App logo + "Driver Terminal" label
                 Row(
                   children: [
                     Container(
-                      width: 30, height: 30,
+                      width: 42, height: 42,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(9),
-                        color: Colors.white.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.18),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.lock_outline_rounded, size: 17, color: Colors.white),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'assets/images/app_icon.png',
+                          width: 42, height: 42,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Text(
                       'DRIVER TERMINAL',
                       style: TextStyle(fontFamily: 'SpaceGrotesk',

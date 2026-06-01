@@ -284,14 +284,14 @@ class ProfileScreen extends GetView<ProfileController> {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        final id = '${p['id'] ?? '-'}';
-                        Clipboard.setData(ClipboardData(text: id));
-                        AppNotifier.info('ID Disalin', 'ID driver berhasil disalin ke clipboard.');
+                        final code = '${p['driverCode'] ?? p['id'] ?? '-'}';
+                        Clipboard.setData(ClipboardData(text: code));
+                        AppNotifier.info('Kode Disalin', 'Kode driver berhasil disalin ke clipboard.');
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('ID · ${p['id'] ?? '-'}',
+                          Text('KODE · ${p['driverCode'] ?? p['id'] ?? '-'}',
                             style: TextStyle(fontFamily: 'SpaceGrotesk',
                                 color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600)),
                           const SizedBox(width: 5),

@@ -504,8 +504,12 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   Future<void> manualRefresh() async {
     if (isRefreshing.value) return;
     isRefreshing.value = true;
+    _locationTimestamp = null; // force refresh GPS on manual refresh
     try {
-      await _loadCheckInStatus();
+      await Future.wait([
+        _loadCheckInStatus(),
+        _fetchCurrentLocation(),
+      ]);
     } catch (e) {
       AppNotifier.error(
         'Refresh Gagal',

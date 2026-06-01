@@ -154,17 +154,19 @@ class HomeScreen extends GetView<HomeController> {
                     ),
                   ],
                 ),
-                child: AnimatedRotation(
-                  turns: spinning ? 1.0 : 0.0,
-                  duration: spinning
-                      ? const Duration(milliseconds: 600)
-                      : Duration.zero,
-                  child: Icon(
-                    Icons.refresh_rounded,
-                    size: 20,
-                    color: spinning ? AppColors.brand600 : AppColors.ink2,
-                  ),
-                ),
+                child: spinning
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.brand600,
+                        ),
+                      )
+                    : Icon(
+                        Icons.refresh_rounded,
+                        size: 20,
+                        color: AppColors.ink2,
+                      ),
               ),
             );
           }),
