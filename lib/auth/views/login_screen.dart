@@ -115,7 +115,7 @@ class LoginScreen extends GetView<LoginController> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Clock in, clock out, and track\nevery shift in one tap.',
+                  'login_hero_subtitle'.tr,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.78),
                     fontSize: 14.5,
@@ -145,7 +145,7 @@ class LoginScreen extends GetView<LoginController> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Sign in',
+                'sign_in_title'.tr,
                 style: TextStyle(fontFamily: 'SpaceGrotesk',
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
@@ -153,9 +153,9 @@ class LoginScreen extends GetView<LoginController> {
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Use your assigned driver account.',
-                style: TextStyle(
+              Text(
+                'sign_in_subtitle'.tr,
+                style: const TextStyle(
                   color: AppColors.muted,
                   fontSize: 13.5,
                   fontWeight: FontWeight.w500,
@@ -165,7 +165,7 @@ class LoginScreen extends GetView<LoginController> {
 
               // Email
               _TicketInput(
-                label: 'EMAIL ADDRESS',
+                label: 'email_label'.tr,
                 icon: Icons.alternate_email_rounded,
                 textController: controller.emailController,
                 placeholder: 'driver@company.com',
@@ -177,7 +177,7 @@ class LoginScreen extends GetView<LoginController> {
 
               // Password
               Obx(() => _TicketInput(
-                label: 'PASSWORD',
+                label: 'password_label'.tr,
                 icon: Icons.lock_outline_rounded,
                 textController: controller.passwordController,
                 placeholder: '••••••••',
@@ -230,9 +230,9 @@ class LoginScreen extends GetView<LoginController> {
                           ),
                         )
                       else
-                        const Text(
-                          'Sign In',
-                          style: TextStyle(
+                        Text(
+                          'sign_in_btn'.tr,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 16.5,

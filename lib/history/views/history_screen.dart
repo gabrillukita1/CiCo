@@ -7,10 +7,10 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 const _filters = [
-  (label: 'All', filter: DateFilter.all),
-  (label: 'Today', filter: DateFilter.today),
-  (label: 'This Week', filter: DateFilter.thisWeek),
-  (label: 'This Month', filter: DateFilter.thisMonth),
+  (label: 'filter_all', filter: DateFilter.all),
+  (label: 'filter_today', filter: DateFilter.today),
+  (label: 'filter_week', filter: DateFilter.thisWeek),
+  (label: 'filter_month', filter: DateFilter.thisMonth),
 ];
 
 class HistoryScreen extends StatefulWidget {
@@ -73,7 +73,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text('History',
+                Text('history_title'.tr,
                   style: TextStyle(fontFamily: 'SpaceGrotesk',
                     fontWeight: FontWeight.w700, fontSize: 30,
                     letterSpacing: -0.5, color: AppColors.ink,
@@ -127,7 +127,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           padding: const EdgeInsets.fromLTRB(20, 2, 20, 14),
           children: [
             ..._filters.map((f) => _filterChip(
-              label: f.label,
+              label: f.label.tr,
               isActive: active == f.filter,
               onTap: () => controller.setFilter(f.filter),
             )),
@@ -151,7 +151,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final fmt = DateFormat('dd MMM');
       return '${fmt.format(controller.customStart.value!)} – ${fmt.format(controller.customEnd.value!)}';
     }
-    return 'Custom';
+    return 'filter_custom'.tr;
   }
 
   Future<void> _pickCustomRange() async {
@@ -239,8 +239,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               Icon(Icons.history_rounded, size: 56,
                   color: AppColors.muted.withValues(alpha: 0.35)),
               const SizedBox(height: 12),
-              const Text('No sessions yet',
-                  style: TextStyle(color: AppColors.muted, fontSize: 14, fontWeight: FontWeight.w500)),
+              Text('no_sessions'.tr,
+                  style: const TextStyle(color: AppColors.muted, fontSize: 14, fontWeight: FontWeight.w500)),
             ],
           ),
         );
@@ -319,7 +319,7 @@ class _SessionCardState extends State<_SessionCard> {
                     child: Icon(info.icon, size: 15, color: info.color),
                   ),
                   const SizedBox(width: 8),
-                  Text(info.label,
+                  Text(info.label.tr,
                       style: TextStyle(color: info.color, fontWeight: FontWeight.w800, fontSize: 14.5)),
                   const Spacer(),
                   Text(
@@ -334,7 +334,7 @@ class _SessionCardState extends State<_SessionCard> {
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
               child: Row(
                 children: [
-                  _timeCell('Check-in', _fmtTime(widget.session['checkinAt']), left: true),
+                  _timeCell('checkin_label'.tr, _fmtTime(widget.session['checkinAt']), left: true),
                   // Center arrow + duration
                   SizedBox(
                     width: 56,
@@ -355,7 +355,7 @@ class _SessionCardState extends State<_SessionCard> {
                     ),
                   ),
                   _timeCell(
-                    'Check-out',
+                    'checkout_label'.tr,
                     status == 'active' ? '—' : _fmtTime(widget.session['checkoutAt']),
                     left: false,
                   ),
@@ -406,10 +406,10 @@ class _SessionCardState extends State<_SessionCard> {
     final Color color;
     final String statusLabel;
     switch (payStatus) {
-      case 'success': color = AppColors.ok; statusLabel = 'Paid'; break;
-      case 'pending': color = AppColors.warn; statusLabel = 'Pending'; break;
-      case 'expired': color = AppColors.muted; statusLabel = 'Expired'; break;
-      default: color = AppColors.danger; statusLabel = 'Failed';
+      case 'success': color = AppColors.ok; statusLabel = 'pay_status_paid'.tr; break;
+      case 'pending': color = AppColors.warn; statusLabel = 'pay_status_pending'.tr; break;
+      case 'expired': color = AppColors.muted; statusLabel = 'pay_status_expired'.tr; break;
+      default: color = AppColors.danger; statusLabel = 'pay_status_failed'.tr;
     }
 
     final isStruck = payStatus == 'expired' || payStatus == 'failed';
@@ -429,8 +429,8 @@ class _SessionCardState extends State<_SessionCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('PAYMENT',
-                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
+              Text('payment_section'.tr,
+                  style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
                       letterSpacing: 1.4, color: AppColors.muted)),
               const SizedBox(height: 3),
               Row(
@@ -499,9 +499,9 @@ class _SessionCardState extends State<_SessionCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Dispatch',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.ink)),
-                      Text('${dispatches.length} ${dispatches.length > 1 ? 'dispatches' : 'dispatch'}',
+                      Text('dispatch_section'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.ink)),
+                      Text('${dispatches.length} ${'dispatch_unit'.tr}',
                           style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600)),
                     ],
                   ),
@@ -560,8 +560,8 @@ class _SessionCardState extends State<_SessionCard> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Dispatch by',
-                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
+                              Text('dispatch_by_label'.tr,
+                                  style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
                                       letterSpacing: 1.4, color: AppColors.muted)),
                               Text(name,
                                   style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700,
@@ -573,8 +573,8 @@ class _SessionCardState extends State<_SessionCard> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Text('Dispatch at',
-                                style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
+                            Text('dispatch_at_label'.tr,
+                                style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700,
                                     letterSpacing: 1.4, color: AppColors.muted)),
                             Text(tz.formatTime(d['dispatchedAt']),
                                 style: TextStyle(fontFamily: 'SpaceGrotesk',

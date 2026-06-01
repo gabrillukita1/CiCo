@@ -1,5 +1,6 @@
 import 'package:cico_project/auth/services/auth_service.dart';
 import 'package:cico_project/core/style/app_colors.dart';
+import 'package:cico_project/core/translations/app_translations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
@@ -26,14 +27,21 @@ void main() async {
   // Kalau token expired, interceptor Dio otomatis redirect ke login.
   final hasToken = authService.getToken() != null;
 
+  // Load saved locale (default: Bahasa Indonesia)
+  final savedLocale = GetStorage().read<String>('locale') ?? 'id_ID';
+  final localeParts = savedLocale.split('_');
+  final locale = Locale(localeParts[0], localeParts.length > 1 ? localeParts[1] : '');
+
   runApp(CicoApp(
     initialRoute: hasToken ? AppRoutes.home : AppRoutes.login,
+    locale: locale,
   ));
 }
 
 class CicoApp extends StatelessWidget {
   final String initialRoute;
-  const CicoApp({super.key, required this.initialRoute});
+  final Locale locale;
+  const CicoApp({super.key, required this.initialRoute, required this.locale});
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +53,9 @@ class CicoApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'CICO Driver',
       debugShowCheckedModeBanner: false,
+      translations: AppTranslations(),
+      locale: locale,
+      fallbackLocale: const Locale('id', 'ID'),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary, brightness: Brightness.light),

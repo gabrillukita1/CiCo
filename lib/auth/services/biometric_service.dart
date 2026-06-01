@@ -36,8 +36,8 @@ class BiometricService {
       }
       // Error lainnya (locked out, hardware error, dsb)
       AppNotifier.warning(
-        'Gagal Verifikasi',
-        e.message ?? 'Verifikasi gagal, coba lagi.',
+        'verify_error_title'.tr,
+        e.message ?? 'verify_error_default'.tr,
       );
       return false;
     } catch (_) {
@@ -49,20 +49,19 @@ class BiometricService {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.security_rounded, color: Color(0xFFF59E0B)),
-            SizedBox(width: 10),
+            const Icon(Icons.security_rounded, color: Color(0xFFF59E0B)),
+            const SizedBox(width: 10),
             Text(
-              'Kunci Layar Diperlukan',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              'lockscreen_title'.tr,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ],
         ),
-        content: const Text(
-          'HP ini belum memiliki kunci layar (PIN, pola, atau sidik jari).\n\n'
-          'Buka Pengaturan → Keamanan → Kunci Layar, lalu atur PIN atau biometrik terlebih dahulu.',
-          style: TextStyle(fontSize: 14, height: 1.5),
+        content: Text(
+          'lockscreen_msg'.tr,
+          style: const TextStyle(fontSize: 14, height: 1.5),
         ),
         actions: [
           ElevatedButton(
@@ -72,8 +71,8 @@ class BiometricService {
                   borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Get.back(),
-            child: const Text('Mengerti',
-                style: TextStyle(color: Colors.white)),
+            child: Text('lockscreen_btn'.tr,
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

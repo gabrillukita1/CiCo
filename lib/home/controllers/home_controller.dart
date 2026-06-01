@@ -85,23 +85,23 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        AppNotifier.warning('Lokasi', 'Lokasi tidak aktif');
+        AppNotifier.warning('loc_label'.tr, 'loc_disabled'.tr);
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          AppNotifier.warning('Lokasi', 'Izin lokasi ditolak');
+          AppNotifier.warning('loc_label'.tr, 'loc_denied'.tr);
           return;
         }
       }
       if (permission == LocationPermission.deniedForever) {
         final openSettings = await AppNotifier.confirmDialog(
-          title: 'Izin Lokasi Diblokir',
-          message: 'Izin lokasi diblokir permanen. Buka pengaturan untuk mengaktifkannya.',
-          confirmText: 'Buka Pengaturan',
-          cancelText: 'Nanti',
+          title: 'loc_blocked_title'.tr,
+          message: 'loc_blocked_msg'.tr,
+          confirmText: 'loc_open_settings'.tr,
+          cancelText: 'loc_later'.tr,
           type: AppNoticeType.warning,
         );
         if (openSettings) await Geolocator.openAppSettings();
@@ -127,11 +127,11 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         ].where((e) => e != null && e.trim().isNotEmpty).toList();
         currentAddress.value = parts.join(', ');
       } else {
-        currentAddress.value = 'Alamat tidak ditemukan';
+        currentAddress.value = 'loc_not_found'.tr;
       }
     } catch (e) {
-      AppNotifier.error('Lokasi', 'Gagal mengambil lokasi. Coba lagi.');
-      currentAddress.value = 'Gagal mendapatkan alamat';
+      AppNotifier.error('loc_label'.tr, 'loc_error'.tr);
+      currentAddress.value = 'loc_error_address'.tr;
     }
   }
 
@@ -150,7 +150,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
         if (checkInStatus.value.isEmpty) {
           _resetToIdle();
         } else {
-          AppNotifier.warning('Koneksi', 'Gagal memuat status. Menampilkan data terakhir.');
+          AppNotifier.warning('connection_label'.tr, 'failed_load_status'.tr);
         }
         return;
       }
@@ -199,8 +199,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       // Notifikasi transisi ke on_duty
       if (previousStatus != 'on_duty' && checkInStatus.value == 'on_duty') {
         AppNotifier.success(
-          'Pembayaran Berhasil!',
-          'Sesi kerja Anda sudah aktif.',
+          'payment_active_title'.tr,
+          'payment_active_msg'.tr,
           duration: const Duration(seconds: 5),
         );
       }
@@ -269,7 +269,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       }
       await _doCheckIn();
     } catch (e) {
-      AppNotifier.error('Terjadi Kesalahan', 'Gagal memproses permintaan.');
+      AppNotifier.error('error_processing_title'.tr, 'error_processing_msg'.tr);
     } finally {
       activeAction.value = DriverAction.none;
     }
@@ -295,8 +295,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       return pos;
     } catch (_) {
       AppNotifier.error(
-        'Lokasi Tidak Tersedia',
-        'Aktifkan GPS dan pastikan izin lokasi sudah diberikan, lalu coba lagi.',
+        'loc_unavailable_title'.tr,
+        'loc_unavailable_msg'.tr,
         duration: const Duration(seconds: 5),
       );
       return null;
@@ -327,8 +327,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     );
     if (!AuthService.isSuccess(res)) {
       AppNotifier.error(
-        'Gagal Check-In',
-        AuthService.extractMessage(res?['message'], fallback: 'Gagal check-in'),
+        'checkin_failed_title'.tr,
+        AuthService.extractMessage(res?['message'], fallback: 'checkin_failed_title'.tr),
       );
       await refreshSessionStatus();
       return;
@@ -345,7 +345,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     } else {
       await refreshSessionStatus();
       if (checkInStatus.value == 'on_duty' || checkInStatus.value == 'standby') {
-        AppNotifier.success('Check-In Berhasil', 'Sesi langsung aktif');
+        AppNotifier.success('checkin_success_title'.tr, 'checkin_success_msg'.tr);
       }
     }
   }
@@ -364,15 +364,15 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     );
     if (!AuthService.isSuccess(res)) {
       AppNotifier.error(
-        'Pembayaran',
-        AuthService.extractMessage(res?['message'], fallback: 'Gagal mendapatkan halaman pembayaran'),
+        'payment_retry_label'.tr,
+        AuthService.extractMessage(res?['message'], fallback: 'payment_retry_label'.tr),
       );
       return;
     }
 
     final redirectUrl = _extractRedirectUrl(res);
     if (redirectUrl.isEmpty) {
-      AppNotifier.warning('Pembayaran', 'URL pembayaran tidak ditemukan.');
+      AppNotifier.warning('payment_retry_label'.tr, 'payment_no_url'.tr);
       return;
     }
 
@@ -400,7 +400,7 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     try {
       await _doCheckOut();
     } catch (e) {
-      AppNotifier.error('Terjadi Kesalahan', 'Gagal memproses permintaan.');
+      AppNotifier.error('error_processing_title'.tr, 'error_processing_msg'.tr);
     } finally {
       activeAction.value = DriverAction.none;
     }
@@ -416,36 +416,36 @@ class HomeController extends GetxController with WidgetsBindingObserver {
     );
 
     if (!AuthService.isSuccess(res)) {
-      AppNotifier.error('Gagal Return',
-          AuthService.extractMessage(res?['message'], fallback: 'Gagal return to standby'));
+      AppNotifier.error('return_failed_title'.tr,
+          AuthService.extractMessage(res?['message'], fallback: 'return_failed_title'.tr));
       return;
     }
 
     checkInStatus.value = 'standby';
-    AppNotifier.success('Kembali ke Standby',
-        AuthService.extractMessage(res?['message'], fallback: 'Kamu sudah kembali ke standby'));
+    AppNotifier.success('return_success_title'.tr,
+        AuthService.extractMessage(res?['message'], fallback: 'return_success_title'.tr));
     await refreshWithDelay();
   }
 
   Future<void> _doCheckOut() async {
     final confirm = await AppNotifier.confirmDialog(
-      title: 'Konfirmasi Check-Out',
-      message: 'Apakah kamu yakin ingin mengakhiri sesi check-in ini?',
-      confirmText: 'Ya, Check-Out',
+      title: 'checkout_confirm_title'.tr,
+      message: 'checkout_confirm_msg'.tr,
+      confirmText: 'checkout_confirm_btn'.tr,
       type: AppNoticeType.error,
     );
     if (!confirm) return;
 
     final res = await _authService.checkout();
     if (!AuthService.isSuccess(res)) {
-      AppNotifier.error('Gagal Check-Out',
-          AuthService.extractMessage(res?['message'], fallback: 'Check-out ditolak server'));
+      AppNotifier.error('checkout_failed_title'.tr,
+          AuthService.extractMessage(res?['message'], fallback: 'checkout_failed_title'.tr));
       return;
     }
 
     checkInStatus.value = 'offline';
-    AppNotifier.info('Check-Out Berhasil',
-        AuthService.extractMessage(res?['message'], fallback: 'Sesi telah diakhiri'));
+    AppNotifier.info('checkout_success_title'.tr,
+        AuthService.extractMessage(res?['message'], fallback: 'checkout_success_title'.tr));
     await refreshWithDelay();
   }
 
@@ -456,25 +456,25 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       case 'success':
         await refreshSessionStatus();
         AppNotifier.success(
-          'Pembayaran Berhasil',
-          'Sesi kerja kamu sudah aktif.',
+          'payment_active_title'.tr,
+          'payment_active_msg'.tr,
           duration: const Duration(seconds: 5),
         );
       case 'pending':
         AppNotifier.warning(
-          'Pembayaran Pending',
-          'Transaksi masih diproses. Cek kembali beberapa saat lagi.',
+          'payment_pending_title'.tr,
+          'payment_pending_msg'.tr,
         );
       case 'failed':
         AppNotifier.error(
-          'Pembayaran Gagal',
-          'Transaksi tidak berhasil. Silakan coba lagi.',
+          'payment_failed_title'.tr,
+          'payment_failed_msg'.tr,
         );
         await refreshSessionStatus();
       case 'closed':
         AppNotifier.warning(
-          'Pembayaran Dibatalkan',
-          'Kamu menutup halaman pembayaran sebelum selesai.',
+          'payment_cancelled_title'.tr,
+          'payment_cancelled_msg'.tr,
         );
         await refreshSessionStatus();
     }
@@ -485,19 +485,19 @@ class HomeController extends GetxController with WidgetsBindingObserver {
   Future<bool> _requestBiometricForCheckIn() async {
     try {
       final bool authenticated = await _biometricService.authenticate(
-        reason: 'Konfirmasi identitas untuk check-in',
+        reason: 'biometric_reason'.tr,
       );
       if (!authenticated) {
         AppNotifier.warning(
-          'Verifikasi Gagal',
-          'Autentikasi biometrik dibutuhkan untuk check-in.',
+          'verify_failed_title'.tr,
+          'verify_failed_msg'.tr,
           duration: const Duration(seconds: 4),
         );
       }
       return authenticated;
     } catch (e) {
       AppNotifier.error(
-        'Biometrik Error',
+        'biometric_error_title'.tr,
         'Gagal memverifikasi identitas: ${e.toString().split('\n').first}',
         duration: const Duration(seconds: 5),
       );
@@ -516,8 +516,8 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       ]);
     } catch (e) {
       AppNotifier.error(
-        'Refresh Gagal',
-        'Tidak dapat memperbarui status.',
+        'refresh_failed_title'.tr,
+        'refresh_failed_msg'.tr,
       );
     } finally {
       isRefreshing.value = false;

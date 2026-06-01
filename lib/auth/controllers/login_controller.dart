@@ -44,11 +44,11 @@ class LoginController extends GetxController {
     final passwordText = passwordController.text;
 
     if (emailText.isEmpty || passwordText.isEmpty) {
-      AppNotifier.warning('Validasi', 'Email dan password harus diisi');
+      AppNotifier.warning('validation_label'.tr, 'validation_empty'.tr);
       return;
     }
     if (!GetUtils.isEmail(emailText)) {
-      AppNotifier.warning('Validasi', 'Format email tidak valid');
+      AppNotifier.warning('validation_label'.tr, 'validation_email'.tr);
       return;
     }
 

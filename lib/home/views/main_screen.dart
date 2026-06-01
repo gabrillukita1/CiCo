@@ -53,9 +53,9 @@ class _MainScreenState extends State<MainScreen> {
         padding: EdgeInsets.only(top: 8, bottom: bottomPadding > 0 ? bottomPadding : 16),
         child: Row(
           children: [
-            _NavItem(icon: Icons.home_rounded,    label: 'Home',    index: 0, active: _currentIndex, onTap: _onTabTap),
-            _NavItem(icon: Icons.history_rounded, label: 'History', index: 1, active: _currentIndex, onTap: _onTabTap),
-            _NavItem(icon: Icons.person_rounded,  label: 'Profile', index: 2, active: _currentIndex, onTap: _onTabTap),
+            _NavItem(icon: Icons.home_rounded,    label: 'nav_home'.tr,    index: 0, active: _currentIndex, onTap: _onTabTap),
+            _NavItem(icon: Icons.history_rounded, label: 'nav_history'.tr, index: 1, active: _currentIndex, onTap: _onTabTap),
+            _NavItem(icon: Icons.person_rounded,  label: 'nav_profile'.tr, index: 2, active: _currentIndex, onTap: _onTabTap),
           ],
         ),
       ),

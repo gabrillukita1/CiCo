@@ -13,18 +13,18 @@ class HomeScreen extends GetView<HomeController> {
       backgroundColor: AppColors.background,
       body: Obx(() {
         if (controller.isInitializing.value) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(
+                const CircularProgressIndicator(
                   color: AppColors.primary,
                   strokeWidth: 2.5,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
-                  'Loading dashboard...',
-                  style: TextStyle(fontSize: 13, color: AppColors.muted),
+                  'loading_dashboard'.tr,
+                  style: const TextStyle(fontSize: 13, color: AppColors.muted),
                 ),
               ],
             ),
@@ -114,9 +114,9 @@ class HomeScreen extends GetView<HomeController> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Welcome back',
-                  style: TextStyle(
+                Text(
+                  'welcome_back'.tr,
+                  style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -205,9 +205,9 @@ class HomeScreen extends GetView<HomeController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'LOCATION',
-                    style: TextStyle(
+                  Text(
+                    'location_label'.tr,
+                    style: const TextStyle(
                       fontSize: 9.5,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
@@ -217,7 +217,7 @@ class HomeScreen extends GetView<HomeController> {
                   const SizedBox(height: 1),
                   Text(
                     controller.currentAddress.value.isEmpty
-                        ? 'Getting location...'
+                        ? 'getting_location'.tr
                         : controller.currentAddress.value,
                     style: const TextStyle(
                       color: AppColors.ink,
@@ -311,7 +311,7 @@ class HomeScreen extends GetView<HomeController> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              cfg.tag,
+                              cfg.tag.tr,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
@@ -364,7 +364,7 @@ class HomeScreen extends GetView<HomeController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        cfg.heroKicker,
+                        cfg.heroKicker.tr,
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
@@ -389,9 +389,9 @@ class HomeScreen extends GetView<HomeController> {
                           ),
                           if (isTimerStatus) ...[
                             const SizedBox(width: 12),
-                            const Text(
-                              'HRS : MIN',
-                              style: TextStyle(
+                            Text(
+                              'hrs_min_label'.tr,
+                              style: const TextStyle(
                                 color: Colors.white54,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
@@ -403,7 +403,7 @@ class HomeScreen extends GetView<HomeController> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        cfg.sub,
+                        cfg.sub.tr,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.82),
                           fontSize: 13.5,
@@ -422,11 +422,11 @@ class HomeScreen extends GetView<HomeController> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(22, 16, 22, 22),
                   child: Builder(builder: (_) {
-                    final f1l = status == 'pending_payment' ? 'METHOD' : 'CHECK-IN';
+                    final f1l = status == 'pending_payment' ? 'footer_method'.tr : 'footer_checkin_time'.tr;
                     final f1v = status == 'pending_payment'
                         ? 'QRIS'
                         : (controller.startTime.value.isEmpty ? '--:--' : controller.startTime.value);
-                    final f2l = status == 'pending_payment' ? 'DUE' : 'EXPIRES';
+                    final f2l = status == 'pending_payment' ? 'footer_due'.tr : 'footer_expires'.tr;
                     final f2v = status == 'pending_payment'
                         ? 'NOW'
                         : (controller.endTime.value.isEmpty ? '--:--' : controller.endTime.value);
@@ -456,8 +456,8 @@ class HomeScreen extends GetView<HomeController> {
             children: [
               _swipeBtn(
                 label: action == DriverAction.returnStandby
-                    ? 'Returning...'
-                    : 'SWIPE TO RETURN',
+                    ? 'swipe_busy_returning'.tr
+                    : 'swipe_return'.tr,
                 color: AppColors.info,
                 icon: Icons.reply_rounded,
                 isBusy: action == DriverAction.returnStandby,
@@ -468,8 +468,8 @@ class HomeScreen extends GetView<HomeController> {
               const SizedBox(height: 10),
               _swipeBtn(
                 label: action == DriverAction.checkout
-                    ? 'Checking Out...'
-                    : 'SWIPE TO CHECK-OUT',
+                    ? 'swipe_busy_checkout'.tr
+                    : 'swipe_checkout'.tr,
                 color: AppColors.danger,
                 icon: Icons.logout_rounded,
                 isBusy: action == DriverAction.checkout,
@@ -486,19 +486,19 @@ class HomeScreen extends GetView<HomeController> {
         switch (status) {
           case 'standby':
             color = AppColors.danger;
-            label = 'SWIPE TO CHECK-OUT';
+            label = 'swipe_checkout'.tr;
             break;
           case 'pending_payment':
             color = AppColors.warn;
-            label = 'SWIPE TO PAY';
+            label = 'swipe_pay'.tr;
             break;
           default:
             color = AppColors.ok;
-            label = 'SWIPE TO CHECK-IN';
+            label = 'swipe_checkin'.tr;
         }
 
         return _swipeBtn(
-          label: anyBusy ? 'Please wait...' : label,
+          label: anyBusy ? 'swipe_busy_wait'.tr : label,
           color: color,
           icon: Icons.double_arrow_rounded,
           isBusy: anyBusy,
@@ -642,9 +642,9 @@ _StageConfig _stageConfig(String status) {
         glowColor: Colors.white.withValues(alpha: 0.22),
         shadowColor: const Color(0xFFF7A53C).withValues(alpha: 0.35),
         dotColor: const Color(0xFFFFE7C2),
-        tag: 'PENDING PAYMENT',
-        sub: 'Complete payment to activate',
-        heroKicker: 'AMOUNT DUE',
+        tag: 'stage_tag_pending',
+        sub: 'stage_sub_pending',
+        heroKicker: 'stage_kicker_pending',
       );
     case 'standby':
       return _StageConfig(
@@ -656,9 +656,9 @@ _StageConfig _stageConfig(String status) {
         glowColor: Colors.white.withValues(alpha: 0.20),
         shadowColor: const Color(0xFF4385F7).withValues(alpha: 0.35),
         dotColor: const Color(0xFFCFE0FF),
-        tag: 'STANDBY',
-        sub: 'Waiting for dispatch',
-        heroKicker: 'REMAINING TIME',
+        tag: 'stage_tag_standby',
+        sub: 'stage_sub_standby',
+        heroKicker: 'stage_kicker_time',
       );
     case 'on_duty':
       return _StageConfig(
@@ -670,9 +670,9 @@ _StageConfig _stageConfig(String status) {
         glowColor: Colors.white.withValues(alpha: 0.22),
         shadowColor: const Color(0xFF1AB877).withValues(alpha: 0.35),
         dotColor: const Color(0xFFC7F6E3),
-        tag: 'ON DUTY',
-        sub: "You're live — drive safe",
-        heroKicker: 'REMAINING TIME',
+        tag: 'stage_tag_on_duty',
+        sub: 'stage_sub_on_duty',
+        heroKicker: 'stage_kicker_time',
       );
     default:
       return _StageConfig(
@@ -684,9 +684,9 @@ _StageConfig _stageConfig(String status) {
         glowColor: const Color(0xFFFF6B61).withValues(alpha: 0.16),
         shadowColor: AppColors.panelInk.withValues(alpha: 0.4),
         dotColor: const Color(0xFFFF6B61),
-        tag: 'OFFLINE',
-        sub: 'Start your shift to go online',
-        heroKicker: 'NOT CLOCKED IN',
+        tag: 'stage_tag_offline',
+        sub: 'stage_sub_offline',
+        heroKicker: 'stage_kicker_offline',
       );
   }
 }

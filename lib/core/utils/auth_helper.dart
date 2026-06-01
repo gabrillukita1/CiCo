@@ -10,9 +10,9 @@ class AuthHelper {
 
   static Future<void> confirmAndLogout() async {
     final confirm = await AppNotifier.confirmDialog(
-      title: 'Konfirmasi Logout',
-      message: 'Apakah kamu yakin ingin logout dari aplikasi?',
-      confirmText: 'Ya, Logout',
+      title: 'logout_confirm_title'.tr,
+      message: 'logout_confirm_msg'.tr,
+      confirmText: 'logout_confirm_btn'.tr,
       type: AppNoticeType.error,
     );
     if (!confirm) return;

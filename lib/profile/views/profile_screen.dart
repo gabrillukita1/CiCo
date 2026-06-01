@@ -5,6 +5,7 @@ import 'package:cico_project/profile/controllers/profile_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 class ProfileScreen extends GetView<ProfileController> {
   const ProfileScreen({super.key});
@@ -22,7 +23,7 @@ class ProfileScreen extends GetView<ProfileController> {
             padding: EdgeInsets.fromLTRB(20, top + 8, 20, 14),
             child: Row(
               children: [
-                Text('Profile',
+                Text('profile_title'.tr,
                   style: TextStyle(fontFamily: 'SpaceGrotesk',
                     fontWeight: FontWeight.w700, fontSize: 30,
                     letterSpacing: -0.5, color: AppColors.ink,
@@ -61,12 +62,12 @@ class ProfileScreen extends GetView<ProfileController> {
                     children: [
                       const Icon(Icons.error_outline, size: 48, color: AppColors.muted),
                       const SizedBox(height: 12),
-                      const Text('Failed to load profile', style: TextStyle(color: AppColors.muted)),
+                      Text('failed_load_profile'.tr, style: const TextStyle(color: AppColors.muted)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: controller.loadProfile,
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                        child: const Text('Try Again', style: TextStyle(color: Colors.white)),
+                        child: Text('try_again'.tr, style: const TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
@@ -79,21 +80,24 @@ class ProfileScreen extends GetView<ProfileController> {
                     _buildDriverIdCard(p),
                     const SizedBox(height: 16),
                     _SectionCard(
-                      title: 'Account',
+                      title: 'account_section'.tr,
                       children: [
-                        _InfoRow(icon: Icons.alternate_email_rounded, label: 'EMAIL', value: p['email'] ?? '-'),
-                        _InfoRow(icon: Icons.phone_rounded, label: 'PHONE', value: p['phone'] ?? '-', last: true),
+                        _InfoRow(icon: Icons.alternate_email_rounded, label: 'email_row_label'.tr, value: p['email'] ?? '-'),
+                        _InfoRow(icon: Icons.phone_rounded, label: 'phone_row_label'.tr, value: p['phone'] ?? '-', last: true),
                       ],
                     ),
                     const SizedBox(height: 14),
                     _SectionCard(
-                      title: 'Vehicle',
+                      title: 'vehicle_section'.tr,
                       children: [
-                        _InfoRow(icon: Icons.pin_rounded, label: 'PLATE NUMBER', value: p['vehicleNumber'] ?? '-', mono: true),
-                        _InfoRow(icon: Icons.directions_car_filled_rounded, label: 'VEHICLE TYPE',
+                        _InfoRow(icon: Icons.pin_rounded, label: 'plate_row_label'.tr, value: p['vehicleNumber'] ?? '-', mono: true),
+                        _InfoRow(icon: Icons.directions_car_filled_rounded, label: 'vehicle_type_label'.tr,
                             value: p['vehicleType'] ?? '-', last: true),
                       ],
                     ),
+                    const SizedBox(height: 14),
+                    // Language toggle
+                    _buildLanguageSection(),
                     const SizedBox(height: 20),
                     // Logout button
                     GestureDetector(
@@ -110,13 +114,13 @@ class ProfileScreen extends GetView<ProfileController> {
                                 blurRadius: 8, offset: const Offset(0, 3)),
                           ],
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.logout_rounded, size: 20, color: AppColors.danger),
-                            SizedBox(width: 9),
-                            Text('Log out',
-                                style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700, fontSize: 15.5)),
+                            const Icon(Icons.logout_rounded, size: 20, color: AppColors.danger),
+                            const SizedBox(width: 9),
+                            Text('logout_btn'.tr,
+                                style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700, fontSize: 15.5)),
                           ],
                         ),
                       ),
@@ -129,6 +133,101 @@ class ProfileScreen extends GetView<ProfileController> {
         ],
       ),
     );
+  }
+
+  // ── Language section ──────────────────────────────────────────────────────
+  Widget _buildLanguageSection() {
+    final currentLang = Get.locale?.languageCode ?? 'id';
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Row(
+                children: [
+                  Text('language_section'.tr,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15.5,
+                          color: AppColors.ink)),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: AppColors.lineSoft),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
+            child: Row(
+              children: [
+                _langBtn('id', 'Indonesia', '🇮🇩', currentLang),
+                const SizedBox(width: 10),
+                _langBtn('en', 'English', '🇬🇧', currentLang),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _langBtn(
+      String code, String label, String flag, String currentLang) {
+    final isActive = currentLang == code;
+    return Expanded(
+      child: GestureDetector(
+        onTap: isActive ? null : () => _switchLocale(code),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 50,
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.panelInk : AppColors.surface2,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isActive ? AppColors.panelInk : AppColors.line,
+              width: 1.5,
+            ),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: AppColors.panelInk.withValues(alpha: 0.28),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(flag, style: const TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: isActive ? Colors.white : AppColors.ink2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _switchLocale(String code) {
+    final locale =
+        code == 'en' ? const Locale('en', 'US') : const Locale('id', 'ID');
+    Get.updateLocale(locale);
+    GetStorage().write('locale', code == 'en' ? 'en_US' : 'id_ID');
   }
 
   // ── Driver ID boarding pass ────────────────────────────────────────────────
@@ -181,8 +280,8 @@ class ProfileScreen extends GetView<ProfileController> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('DRIVER ID',
-                          style: TextStyle(color: Colors.white60, fontSize: 11,
+                        Text('driver_id_label'.tr,
+                          style: const TextStyle(color: Colors.white60, fontSize: 11,
                               fontWeight: FontWeight.w700, letterSpacing: 2.0)),
                         // Status pill
                         Container(
@@ -198,7 +297,7 @@ class ProfileScreen extends GetView<ProfileController> {
                               Container(width: 6, height: 6,
                                   decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white70)),
                               const SizedBox(width: 6),
-                              Text(info.label,
+                              Text(info.label.tr,
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
                             ],
                           ),
@@ -255,8 +354,8 @@ class ProfileScreen extends GetView<ProfileController> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('PLATE NUMBER',
-                          style: TextStyle(color: Colors.white54, fontSize: 9.5,
+                        Text('plate_number_label'.tr,
+                          style: const TextStyle(color: Colors.white54, fontSize: 9.5,
                               fontWeight: FontWeight.w700, letterSpacing: 1.4)),
                         const SizedBox(height: 4),
                         Text(plate,
@@ -286,7 +385,7 @@ class ProfileScreen extends GetView<ProfileController> {
                       onTap: () {
                         final code = '${p['driverCode'] ?? p['id'] ?? '-'}';
                         Clipboard.setData(ClipboardData(text: code));
-                        AppNotifier.info('Kode Disalin', 'Kode driver berhasil disalin ke clipboard.');
+                        AppNotifier.info('code_copied_title'.tr, 'code_copied_msg'.tr);
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -299,7 +398,7 @@ class ProfileScreen extends GetView<ProfileController> {
                         ],
                       ),
                     ),
-                    Text('VALID',
+                    Text('valid_label'.tr,
                       style: TextStyle(fontFamily: 'SpaceGrotesk',
                           color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w600)),
                   ],
