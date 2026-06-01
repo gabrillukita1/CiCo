@@ -142,6 +142,10 @@ class HomeController extends GetxController with WidgetsBindingObserver {
       final previousStatus = checkInStatus.value;
       final dashboard = await _authService.getDashboard();
       if (dashboard == null) {
+        // Jika token tidak ada, interceptor sudah handle logout & redirect —
+        // jangan tampilkan warning yang membingungkan sebelum redirect ke login.
+        if (_authService.getToken() == null) return;
+
         // Pertahankan status terakhir jika network error — reset hanya saat first launch
         if (checkInStatus.value.isEmpty) {
           _resetToIdle();
