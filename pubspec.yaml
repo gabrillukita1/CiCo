@@ -1,5 +1,5 @@
 name: cico_project
-description: "A new Flutter project."
+description: "Aplikasi driver untuk Check-In / Check-Out pool kendaraan."
 publish_to: 'none' 
 
 version: 1.0.0+1
