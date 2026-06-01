@@ -27,21 +27,21 @@ void main() async {
   // Kalau token expired, interceptor Dio otomatis redirect ke login.
   final hasToken = authService.getToken() != null;
 
-  // Load saved locale (default: Bahasa Indonesia)
-  final savedLocale = GetStorage().read<String>('locale') ?? 'id_ID';
-  final localeParts = savedLocale.split('_');
-  final locale = Locale(localeParts[0], localeParts.length > 1 ? localeParts[1] : '');
-
   runApp(CicoApp(
     initialRoute: hasToken ? AppRoutes.home : AppRoutes.login,
-    locale: locale,
   ));
 }
 
 class CicoApp extends StatelessWidget {
   final String initialRoute;
-  final Locale locale;
-  const CicoApp({super.key, required this.initialRoute, required this.locale});
+  const CicoApp({super.key, required this.initialRoute});
+
+  /// Baca locale yang tersimpan dari GetStorage (default: Bahasa Indonesia)
+  static Locale _savedLocale() {
+    final saved = GetStorage().read<String>('locale') ?? 'id_ID';
+    final parts = saved.split('_');
+    return Locale(parts[0], parts.length > 1 ? parts[1] : '');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +54,7 @@ class CicoApp extends StatelessWidget {
       title: 'CICO Driver',
       debugShowCheckedModeBanner: false,
       translations: AppTranslations(),
-      locale: locale,
+      locale: _savedLocale(),
       fallbackLocale: const Locale('id', 'ID'),
       theme: ThemeData(
         useMaterial3: true,
