@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:494499795258:android:564267942fcc2d99ce0003",
+        "mobilesdk_app_id": "1:494499795258:android:c77712b51515519fce0003",
         "android_client_info": {
-          "package_name": "com.cico.driver"
+          "package_name": "com.tafflife.cicodriver"
         }
       },
       "oauth_client": [],

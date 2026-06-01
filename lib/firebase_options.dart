@@ -54,9 +54,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyChtYTA2EWwnTw1C-xY16rJcD_8bxSo-ns',
-    appId: '1:494499795258:android:564267942fcc2d99ce0003',
+    appId: '1:494499795258:android:c77712b51515519fce0003',
     messagingSenderId: '494499795258',
     projectId: 'cico-driver',
     storageBucket: 'cico-driver.firebasestorage.app',
   );
+
 }
