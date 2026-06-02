@@ -53,8 +53,21 @@ class AuthService {
 
           if (error.response?.statusCode == 401 && !_isRefreshing) {
             _isRefreshing = true;
-            final refreshed = await refreshAccessToken();
-            _isRefreshing = false;
+            bool refreshed = false;
+            bool isNetworkError = false;
+            try {
+              refreshed = await refreshAccessToken();
+            } catch (_) {
+              // refreshAccessToken() hanya rethrow jika network error (bukan 4xx)
+              isNetworkError = true;
+            } finally {
+              _isRefreshing = false;
+            }
+
+            if (isNetworkError) {
+              // Sinyal buruk / timeout — jangan logout, teruskan error asli
+              return handler.next(error);
+            }
 
             if (refreshed) {
               error.requestOptions.headers['Authorization'] =
@@ -67,6 +80,7 @@ class AuthService {
                 return handler.next(e);
               }
             } else {
+              // Refresh token ditolak server (expired/invalid) → logout
               await logoutLocal();
               try {
                 Get.offAllNamed(AppRoutes.login);
@@ -184,8 +198,11 @@ class AuthService {
         await _storage.write('refresh_token', newRefreshToken);
       }
       return newAccessToken != null;
-    } catch (_) {
-      return false;
+    } on DioException catch (e) {
+      // Server menolak refresh (token expired/invalid) → kembalikan false agar interceptor logout
+      if (e.response != null) return false;
+      // Network error (timeout, no internet) → rethrow agar interceptor TIDAK logout
+      rethrow;
     }
   }
 
